@@ -50,15 +50,15 @@ PluginComponent {
         return "#6c7086";                                    // ⚪ Offline
     }
 
-    // Horizontal bar pill: dynamically sized based on widgetThickness and mathematically centered
+    // Horizontal bar pill: dynamic scaling with enlarged inner core
     horizontalBarPill: Component {
         Item {
             id: pillContent
 
             readonly property real thickness: (parent && parent.widgetThickness > 0) ? parent.widgetThickness : 30
-            // Even integer dimensions to avoid subpixel shifting
-            readonly property int outerSize: (Math.floor(thickness * 0.80) & ~1)
-            readonly property int innerSize: (Math.floor(outerSize * 0.58) & ~1)
+            // Even integer dimensions for sharp, centered rendering
+            readonly property int outerSize: (Math.floor(thickness * 0.82) & ~1)
+            readonly property int innerSize: (Math.floor(outerSize * 0.72) & ~1)
 
             implicitWidth: 0
             implicitHeight: thickness
@@ -90,7 +90,7 @@ PluginComponent {
                     }
                 }
 
-                // Inner Core Dot (centered inside outerHalo)
+                // Enlarged Inner Core Dot (centered inside outerHalo)
                 Rectangle {
                     id: innerCore
                     anchors.centerIn: parent
@@ -115,8 +115,8 @@ PluginComponent {
             id: vPillContent
 
             readonly property real thickness: (parent && parent.widgetThickness > 0) ? parent.widgetThickness : 30
-            readonly property int outerSize: (Math.floor(thickness * 0.80) & ~1)
-            readonly property int innerSize: (Math.floor(outerSize * 0.58) & ~1)
+            readonly property int outerSize: (Math.floor(thickness * 0.82) & ~1)
+            readonly property int innerSize: (Math.floor(outerSize * 0.72) & ~1)
 
             implicitWidth: thickness
             implicitHeight: 0
