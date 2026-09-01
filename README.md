@@ -62,7 +62,7 @@ Displays the real-time activity of all your running agents (local and remote) ri
 ## 🚀 Quick Start & Installation
 
 ```bash
-git clone https://github.com/yourusername/agy-traffic-light.git
+git clone https://github.com/cerXXXX/agy-traffic-light.git
 cd agy-traffic-light
 ./scripts/install.sh
 ```
@@ -111,7 +111,7 @@ To monitor an agent running on a remote server:
 
 1. **Install hook on the remote machine**:
    ```bash
-   curl -sSL https://raw.githubusercontent.com/yourusername/agy-traffic-light/main/examples/remote/remote-install.sh | bash
+   curl -sSL https://raw.githubusercontent.com/cerXXXX/agy-traffic-light/main/examples/remote/remote-install.sh | bash
    ```
 2. **Connect with SSH reverse port forwarding**:
    ```bash
