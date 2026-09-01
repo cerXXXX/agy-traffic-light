@@ -105,10 +105,10 @@ class StateManager:
                 tool_name = tool_call.get("name", "tool") if isinstance(tool_call, dict) else "tool"
                 args = tool_call.get("args", {}) if isinstance(tool_call, dict) else {}
                 
-                is_ask = payload.get("waitingApproval", False)
+                is_ask = payload.get("waitingApproval", False) or (tool_name in ("ask_question", "request_approval"))
                 if is_ask:
                     new_state = "ask"
-                    substatus = f"Approval required: {tool_name}"
+                    substatus = f"Waiting for user response: {tool_name}"
                 else:
                     new_state = "running"
                     arg_summary = ""
