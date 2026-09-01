@@ -14,6 +14,13 @@ PluginSettings {
         color: Theme.surfaceText
     }
 
+    ToggleSetting {
+        settingKey: "showBackground"
+        label: "Show Widget Background"
+        description: "Show background pill behind the traffic light circle"
+        defaultValue: false
+    }
+
     StringSetting {
         settingKey: "daemonUrl"
         label: "Daemon URL"

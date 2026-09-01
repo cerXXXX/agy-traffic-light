@@ -98,7 +98,7 @@ def run_ayatana_tray(host=DEFAULT_HOST, port=DEFAULT_PORT):
             state_labels = {
                 "ask": "🔴 Attention Required",
                 "running": "🟡 Agent Working",
-                "idle": "🟢 Agent Done / Idle",
+                "idle": "🟢 Ready for Input",
                 "offline": "⚪ Offline"
             }
             header_item.set_label(f"Antigravity: {state_labels.get(state, state)}")

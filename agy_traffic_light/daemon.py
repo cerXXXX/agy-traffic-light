@@ -14,16 +14,46 @@ import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 from typing import Dict, Any, Optional
+import os
 
 DEFAULT_PORT = 9876
 DEFAULT_HOST = "127.0.0.1"
-SESSION_EXPIRATION_SECONDS = 1800  # 30 minutes
+SESSION_EXPIRATION_SECONDS = 1800  # 30 minutes fallback for remote sessions
+
+
+def is_pid_alive(pid: int) -> bool:
+    """Check if process with given PID is still running and not a zombie."""
+    if pid <= 0:
+        return True
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    except Exception:
+        return False
+
+    # Check for zombie state on Linux
+    try:
+        status_file = f"/proc/{pid}/status"
+        if os.path.exists(status_file):
+            with open(status_file, "r") as f:
+                for line in f:
+                    if line.startswith("State:"):
+                        if "Z (zombie)" in line:
+                            return False
+                        break
+    except Exception:
+        pass
+
+    return True
 
 ICONS = {
     "ask": "●",      # 🔴 Waiting for approval / attention
     "running": "●",  # 🟡 Thinking / Executing tool
     "idle": "●",     # 🟢 Done / Idle
-    "offline": "○",  # ⚪ No active sessions
+    "offline": "●",  # ⚪ No active sessions
 }
 
 CSS_CLASSES = {
@@ -35,23 +65,36 @@ CSS_CLASSES = {
 
 
 class AgentSession:
-    def __init__(self, conversation_id: str, workspace: str = "", host: str = "localhost"):
+    def __init__(self, conversation_id: str, workspace: str = "", host: str = "localhost", pid: int = 0):
         self.conversation_id = conversation_id
         self.workspace = workspace or "unknown"
         self.host = host or "localhost"
+        self.pid = pid
         self.state = "idle"  # "ask", "running", "idle"
         self.substatus = "Initialized"
         self.last_updated = time.time()
         self.model = ""
 
-    def update(self, state: str, substatus: str, model: str = ""):
+    def update(self, state: str, substatus: str, model: str = "", pid: int = 0):
         self.state = state
         self.substatus = substatus
         if model:
             self.model = model
+        if pid > 0:
+            self.pid = pid
         self.last_updated = time.time()
 
     def is_stale(self, max_age: float = SESSION_EXPIRATION_SECONDS) -> bool:
+        # If running locally and PID is tracked, instantly detect process termination
+        if self.pid > 0 and self.host in ("localhost", "127.0.0.1", socket.gethostname()):
+            if not is_pid_alive(self.pid):
+                return True
+            return False
+
+        # Untracked / remote sessions:
+        # If idle / finished, expire quickly (after 60 seconds) so old finished sessions don't pile up
+        if self.state == "idle":
+            return (time.time() - self.last_updated) > 60
         return (time.time() - self.last_updated) > max_age
 
     def to_dict(self) -> Dict[str, Any]:
@@ -59,6 +102,7 @@ class AgentSession:
             "conversation_id": self.conversation_id,
             "workspace": self.workspace,
             "host": self.host,
+            "pid": self.pid,
             "state": self.state,
             "substatus": self.substatus,
             "last_updated": self.last_updated,
@@ -72,6 +116,17 @@ class StateManager:
         self.lock = threading.Lock()
         self.sessions: Dict[str, AgentSession] = {}
         self.subscribers = []
+        self._watchdog = threading.Thread(target=self._watchdog_loop, daemon=True)
+        self._watchdog.start()
+
+    def _watchdog_loop(self):
+        while True:
+            time.sleep(0.5)
+            changed = False
+            with self.lock:
+                changed = self._prune_stale()
+            if changed:
+                self._notify_subscribers()
 
     def handle_event(self, payload: Dict[str, Any]) -> str:
         with self.lock:
@@ -86,13 +141,23 @@ class StateManager:
 
             host = payload.get("host", socket.gethostname())
             model = payload.get("modelName", "")
+            pid = int(payload.get("pid", 0))
+
+            # Deduplicate: A single terminal process (PID) only has one active conversation.
+            # If a new conversation starts on the same PID, remove the older conversation session.
+            if pid > 0:
+                for other_id, other_sess in list(self.sessions.items()):
+                    if other_id != conv_id and other_sess.pid == pid and other_sess.host == host:
+                        del self.sessions[other_id]
 
             if conv_id not in self.sessions:
-                self.sessions[conv_id] = AgentSession(conv_id, workspace=workspace, host=host)
+                self.sessions[conv_id] = AgentSession(conv_id, workspace=workspace, host=host, pid=pid)
 
             session = self.sessions[conv_id]
             session.workspace = workspace
             session.host = host
+            if pid > 0:
+                session.pid = pid
 
             new_state = "running"
             substatus = event_type
@@ -128,7 +193,7 @@ class StateManager:
                 substatus = "Processing response"
             elif event_type == "Stop":
                 new_state = "idle"
-                substatus = "Idle - Done"
+                substatus = "Ready"
             elif event_type == "AskApproval":
                 new_state = "ask"
                 substatus = payload.get("reason", "Waiting for confirmation")
@@ -136,16 +201,19 @@ class StateManager:
                 new_state = payload.get("state", "idle")
                 substatus = payload.get("substatus", "")
 
-            session.update(new_state, substatus, model=model)
+            session.update(new_state, substatus, model=model, pid=pid)
             self._prune_stale()
 
         self._notify_subscribers()
         return new_state
 
-    def _prune_stale(self):
+    def _prune_stale(self) -> bool:
         stale_keys = [k for k, s in self.sessions.items() if s.is_stale()]
-        for k in stale_keys:
-            del self.sessions[k]
+        if stale_keys:
+            for k in stale_keys:
+                del self.sessions[k]
+            return True
+        return False
 
     def clear(self):
         with self.lock:

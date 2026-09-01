@@ -93,7 +93,7 @@ STATE_EMOJIS = {
     "ask": "●",
     "running": "●",
     "idle": "●",
-    "offline": "○",
+    "offline": "●",
 }
 
 

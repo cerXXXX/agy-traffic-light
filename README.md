@@ -12,8 +12,8 @@ Displays the real-time activity of all your running agents (local and remote) ri
 | :--- | :---: | :--- | :--- |
 | **Needs Approval** | 🔴 **Red** | Agent is waiting for user confirmation before executing a tool/command | Fast Alert Pulse (0.5s) |
 | **Working** | 🟡 **Yellow** | Agent is thinking, planning, or actively executing a command/tool | Smooth Breathing Glow (1.0s) |
-| **Idle / Done** | 🟢 **Green** | Agent has finished the task and is waiting for your next prompt | Solid Neon Glow |
-| **Offline** | ⚪ **Grey** | No active agent sessions detected | Subtle outline |
+| **Idle / Ready** | 🟢 **Green** | Agent finished current turn and is ready for your next prompt | Solid Neon Glow |
+| **Offline** | ⚪ **Grey** | No active agent sessions detected (or terminal closed) | Solid / Outline |
 
 ---
 
@@ -21,10 +21,11 @@ Displays the real-time activity of all your running agents (local and remote) ri
 
 * **Multi-Agent Aggregation**: Tracks multiple concurrent agents across different workspaces and servers.
   * Priority logic: `🔴 Attention Required > 🟡 Working > 🟢 Idle`.
-* **Native Dank Material Shell (DMS) Plugin**: Native QML bar pill that fits seamlessly into DankBar alongside CPU, RAM, battery, and clipboard monitors.
+* **Automatic Process Tracking**: Binds to terminal PID — closing the terminal tab immediately switches the light to offline.
+* **Native Dank Material Shell (DMS) Plugin**: Native QML bar pill that scales dynamically with bar thickness and fits seamlessly into DankBar.
 * **Waybar / System Tray Support**: Standard JSON stream for Waybar, plus AppIndicator / StatusNotifierItem for KDE/GNOME/etc.
 * **Remote Agents Support**: Stream status from remote servers / VPS over **SSH reverse tunnel** or **Tailscale** with zero latency.
-* **Interactive Popout**: Click the pill to see a detailed card of all active sessions, current tool/command execution, and a button to clear finished sessions.
+* **Interactive Popout**: Click the pill to see a detailed card of all active sessions and current tool/command execution.
 * **AGY Ecosystem Ready**: Works identically with **Antigravity CLI**, **Antigravity 2.0**, and **Antigravity Desktop/IDE**.
 * **Zero Bloat**: Core daemon runs on pure Python standard library (no heavy dependencies).
 
@@ -45,7 +46,7 @@ Displays the real-time activity of all your running agents (local and remote) ri
 ┌────────────────────────────────────────────────────────┐
 │             Status Daemon (Local Hub)                  │
 │  • Listens on http://127.0.0.1:9876                    │
-│  • Aggregates all active sessions                      │
+│  • Tracks PID and prunes dead processes instantly      │
 │  • Calculates global state: 🔴 / 🟡 / 🟢                │
 └────────────────────────────────────────────────────────┘
                            │
@@ -74,9 +75,13 @@ The installer automatically:
 
 ---
 
-## ⚙️ Panel Configurations
+## ⚙️ Panel Configurations & Environment Support
 
-### A. Dank Material Shell (DMS) / Niri
+> [!NOTE]
+> **Tested & Verified:** The widget design and behavior are currently tested and fully verified on **Niri + Dank Material Shell (DMS)**.
+> Integrations for other desktop environments (Waybar, KDE Plasma, Hyprland, System Tray, Standalone GTK Overlay) are provided and implemented, but require user/community testing.
+
+### A. Dank Material Shell (DMS) / Niri *(Tested & Verified)*
 
 DMS plugin is included in [`examples/dms/`](examples/dms/).
 
@@ -86,7 +91,7 @@ To install or update the DMS plugin:
 ```
 This adds `"agyTraffic"` directly to `rightWidgets` in your DankBar configuration.
 
-### B. Waybar Integration
+### B. Waybar Integration *(Requires Community Testing)*
 
 Add to your `~/.config/waybar/config.jsonc`:
 
@@ -102,6 +107,21 @@ Add to your `~/.config/waybar/config.jsonc`:
 ```
 
 Add CSS styles from [`examples/waybar/style.css`](examples/waybar/style.css) into your `~/.config/waybar/style.css`.
+
+### C. System Tray Applet *(Requires Community Testing)*
+
+For KDE Plasma, GNOME (with AppIndicator extension), XFCE, etc.:
+```bash
+python3 -m agy_traffic_light.tray
+```
+Or enable the user service `systemd/agy-traffic-tray.service`.
+
+### D. Standalone Wayland GTK Widget *(Requires Community Testing)*
+
+For window managers without DMS or Waybar (e.g. Sway, Hyprland, River):
+```bash
+python3 -m agy_traffic_light.widget --position top-right
+```
 
 ---
 
