@@ -50,13 +50,11 @@ PluginComponent {
         return "#6c7086";                                    // ⚪ Offline
     }
 
-    // Horizontal bar pill: standard uniform size with the glowing outer halo ring
+    // Horizontal bar pill: compact geometry so DMS's pill background forms a perfect circle
     horizontalBarPill: Component {
-        StyledRect {
-            width: parent.widgetThickness
-            height: parent.widgetThickness
-            radius: Theme.cornerRadius
-            color: Theme.surfaceContainerHigh
+        Item {
+            implicitWidth: 6
+            implicitHeight: root.widgetThickness
 
             Item {
                 anchors.centerIn: parent
@@ -67,24 +65,23 @@ PluginComponent {
                 Rectangle {
                     id: outerHalo
                     anchors.centerIn: parent
-                    width: 21
-                    height: 21
-                    radius: 10.5
+                    width: 24
+                    height: 24
+                    radius: 12
                     color: "transparent"
                     border.color: root.stateColor
                     border.width: 1.5
-                    opacity: root.agentState === "offline" ? 0.25 : 0.65
+                    opacity: root.agentState === "offline" ? 0.25 : 0.75
 
                     Behavior on border.color {
                         ColorAnimation { duration: 250 }
                     }
 
-                    // Soft pulsing ring for running/ask states
                     SequentialAnimation on opacity {
                         running: root.agentState === "running" || root.agentState === "ask"
                         loops: Animation.Infinite
-                        NumberAnimation { from: 0.35; to: 0.90; duration: root.agentState === "ask" ? 500 : 1000; easing.type: Easing.InOutQuad }
-                        NumberAnimation { from: 0.90; to: 0.35; duration: root.agentState === "ask" ? 500 : 1000; easing.type: Easing.InOutQuad }
+                        NumberAnimation { from: 0.35; to: 0.95; duration: root.agentState === "ask" ? 500 : 1000; easing.type: Easing.InOutQuad }
+                        NumberAnimation { from: 0.95; to: 0.35; duration: root.agentState === "ask" ? 500 : 1000; easing.type: Easing.InOutQuad }
                     }
                 }
 
@@ -92,9 +89,9 @@ PluginComponent {
                 Rectangle {
                     id: innerCore
                     anchors.centerIn: parent
-                    width: 13
-                    height: 13
-                    radius: 6.5
+                    width: 15
+                    height: 15
+                    radius: 7.5
                     color: root.stateColor
                     border.color: Theme.surfaceContainerHighest
                     border.width: 1.5
@@ -109,11 +106,9 @@ PluginComponent {
 
     // Vertical bar pill
     verticalBarPill: Component {
-        StyledRect {
-            width: parent.widgetThickness
-            height: parent.widgetThickness
-            radius: Theme.cornerRadius
-            color: Theme.surfaceContainerHigh
+        Item {
+            implicitWidth: root.widgetThickness
+            implicitHeight: 6
 
             Item {
                 anchors.centerIn: parent
@@ -122,20 +117,20 @@ PluginComponent {
 
                 Rectangle {
                     anchors.centerIn: parent
-                    width: 21
-                    height: 21
-                    radius: 10.5
+                    width: 24
+                    height: 24
+                    radius: 12
                     color: "transparent"
                     border.color: root.stateColor
                     border.width: 1.5
-                    opacity: 0.65
+                    opacity: 0.75
                 }
 
                 Rectangle {
                     anchors.centerIn: parent
-                    width: 13
-                    height: 13
-                    radius: 6.5
+                    width: 15
+                    height: 15
+                    radius: 7.5
                     color: root.stateColor
                     border.color: Theme.surfaceContainerHighest
                     border.width: 1.5
