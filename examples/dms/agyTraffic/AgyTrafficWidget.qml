@@ -50,74 +50,56 @@ PluginComponent {
         return "#6c7086";                                    // ⚪ Offline
     }
 
+    // Horizontal bar pill: fixed uniform size matching standard bar buttons
     horizontalBarPill: Component {
         StyledRect {
-            width: pillRow.implicitWidth + Theme.spacingM * 1.5
-            height: parent.widgetThickness
-            radius: Theme.cornerRadius
-            color: root.agentState === "ask" ? "#33ff1744" : Theme.surfaceContainerHigh
-            border.color: root.agentState === "ask" ? "#ff1744" : "transparent"
-            border.width: root.agentState === "ask" ? 1 : 0
-
-            Row {
-                id: pillRow
-                anchors.centerIn: parent
-                spacing: Theme.spacingS
-
-                // Colored glowing circle
-                Rectangle {
-                    width: 14
-                    height: 14
-                    radius: 7
-                    color: root.stateColor
-                    anchors.verticalCenter: parent.verticalCenter
-                    border.color: Theme.surfaceContainerHighest
-                    border.width: 1.5
-
-                    // Outer pulse ring when running or requiring approval
-                    Rectangle {
-                        anchors.centerIn: parent
-                        width: 20
-                        height: 20
-                        radius: 10
-                        color: "transparent"
-                        border.color: root.stateColor
-                        border.width: 1.5
-                        opacity: (root.agentState === "running" || root.agentState === "ask") ? 0.7 : 0.0
-                        visible: opacity > 0
-                    }
-                }
-
-                // Subtitle if running
-                StyledText {
-                    visible: root.agentState === "running" || root.agentState === "ask"
-                    text: root.agentState === "ask" ? "Confirm" : "Agent"
-                    font.pixelSize: Theme.fontSizeSmall
-                    font.weight: Font.Bold
-                    color: root.stateColor
-                    anchors.verticalCenter: parent.verticalCenter
-                }
-            }
-        }
-    }
-
-    verticalBarPill: Component {
-        StyledRect {
             width: parent.widgetThickness
-            height: 32
+            height: parent.widgetThickness
             radius: Theme.cornerRadius
             color: Theme.surfaceContainerHigh
 
             Rectangle {
-                width: 14
-                height: 14
-                radius: 7
+                id: dot
+                width: 16
+                height: 16
+                radius: 8
                 color: root.stateColor
                 anchors.centerIn: parent
+                border.color: Theme.surfaceContainerHighest
+                border.width: 1.5
+
+                Behavior on color {
+                    ColorAnimation { duration: 250 }
+                }
             }
         }
     }
 
+    // Vertical bar pill
+    verticalBarPill: Component {
+        StyledRect {
+            width: parent.widgetThickness
+            height: parent.widgetThickness
+            radius: Theme.cornerRadius
+            color: Theme.surfaceContainerHigh
+
+            Rectangle {
+                width: 16
+                height: 16
+                radius: 8
+                color: root.stateColor
+                anchors.centerIn: parent
+                border.color: Theme.surfaceContainerHighest
+                border.width: 1.5
+
+                Behavior on color {
+                    ColorAnimation { duration: 250 }
+                }
+            }
+        }
+    }
+
+    // Popout on click
     popoutContent: Component {
         PopoutComponent {
             id: popout
