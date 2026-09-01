@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Antigravity Traffic Light - Standalone Wayland Overlay Widget
-Renders an eye-catching, vibrant traffic light circle on the top bar.
+Renders an eye-catching, vibrant traffic light circle directly on the top bar.
 """
 
 import sys
@@ -24,23 +24,23 @@ window {
 }
 
 .traffic-pill {
-    background-color: rgba(15, 15, 24, 0.92);
-    border: 2px solid rgba(255, 255, 255, 0.25);
+    background-color: rgba(15, 15, 24, 0.90);
+    border: 1.5px solid rgba(255, 255, 255, 0.20);
     border-radius: 9999px;
-    padding: 2px 8px;
+    padding: 1px 7px;
     margin: 0px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
 }
 
 .traffic-pill:hover {
     background-color: rgba(24, 24, 37, 0.98);
-    border-color: rgba(255, 255, 255, 0.5);
+    border-color: rgba(255, 255, 255, 0.45);
 }
 
 .dot-label {
-    font-size: 26px;
+    font-size: 24px;
     font-weight: 900;
-    padding: 0px 2px;
+    padding: 0px 1px;
 }
 
 .text-label {
@@ -108,10 +108,14 @@ class TrafficLightWidget(Gtk.Window):
         # Initialize Wayland Layer Shell
         GtkLayerShell.init_for_window(self)
         
+        # Layer OVERLAY places it directly on top of everything
         layer_enum = GtkLayerShell.Layer.OVERLAY if layer == "overlay" else GtkLayerShell.Layer.TOP
         GtkLayerShell.set_layer(self, layer_enum)
         GtkLayerShell.set_namespace(self, "agy-traffic-light")
         GtkLayerShell.set_keyboard_interactivity(self, False)
+
+        # Critical: Exclusive zone = -1 tells compositor NOT to push this window below the panel's exclusive bar!
+        GtkLayerShell.set_exclusive_zone(self, -1)
 
         # Set Anchors based on position
         GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.TOP, True)
@@ -215,9 +219,9 @@ def main():
     parser.add_argument("--host", default="127.0.0.1", help="Daemon host")
     parser.add_argument("--port", type=int, default=9876, help="Daemon port")
     parser.add_argument("--position", choices=["top-right", "top-left", "top-center"], default="top-right", help="Position on screen")
-    parser.add_argument("--margin-top", type=int, default=4, help="Top margin in pixels")
+    parser.add_argument("--margin-top", type=int, default=4, help="Top margin in pixels from top of screen")
     parser.add_argument("--margin-side", type=int, default=280, help="Side margin in pixels")
-    parser.add_argument("--layer", choices=["overlay", "top"], default="overlay", help="Wayland Layer (overlay = above panel)")
+    parser.add_argument("--layer", choices=["overlay", "top"], default="overlay", help="Wayland Layer")
     parser.add_argument("--show-text", action="store_true", help="Show text label next to the circle")
     args = parser.parse_args()
 
