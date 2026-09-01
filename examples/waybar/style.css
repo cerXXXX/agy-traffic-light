@@ -1,0 +1,47 @@
+/* Add these styles to your Waybar style.css */
+
+#custom-agy-traffic {
+    font-size: 14px;
+    padding: 0 8px;
+    margin: 0 4px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+/* 🟢 Green - Idle / Finished */
+#custom-agy-traffic.idle {
+    color: #a6e3a1;
+    text-shadow: 0 0 6px rgba(166, 227, 161, 0.6);
+}
+
+/* 🟡 Yellow - Running / Thinking */
+#custom-agy-traffic.running {
+    color: #f9e2af;
+    text-shadow: 0 0 8px rgba(249, 226, 175, 0.8);
+    animation: agy-pulse 1.5s infinite;
+}
+
+/* 🔴 Red - Waiting for user approval / Attention */
+#custom-agy-traffic.ask {
+    color: #f38ba8;
+    background-color: rgba(243, 139, 168, 0.15);
+    text-shadow: 0 0 10px rgba(243, 139, 168, 0.9);
+    animation: agy-blink 0.8s infinite;
+}
+
+/* ⚪ Grey - Offline / Inactive */
+#custom-agy-traffic.offline {
+    color: #6c7086;
+}
+
+@keyframes agy-pulse {
+    0% { opacity: 0.6; }
+    50% { opacity: 1.0; }
+    100% { opacity: 0.6; }
+}
+
+@keyframes agy-blink {
+    0% { opacity: 1.0; transform: scale(1.0); }
+    50% { opacity: 0.3; transform: scale(0.9); }
+    100% { opacity: 1.0; transform: scale(1.0); }
+}

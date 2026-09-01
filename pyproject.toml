@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agy-traffic-light"
+version = "1.0.0"
+description = "Antigravity AI Agent traffic light status indicator for Waybar, DMS, and System Tray"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [
+    { name = "Community Contributor" }
+]
+keywords = ["antigravity", "ai", "waybar", "niri", "status-indicator", "appindicator"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: POSIX :: Linux",
+    "Environment :: X11 Applications",
+    "Environment :: Wayland"
+]
+
+[project.scripts]
+agy-traffic-daemon = "agy_traffic_light.daemon:main"
+agy-traffic-tray = "agy_traffic_light.tray:run_pystray_app"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["agy_traffic_light*"]

@@ -1,0 +1,13 @@
+[Unit]
+Description=Antigravity Agent Traffic Light Status Daemon
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 -m agy_traffic_light.daemon --port 9876
+Restart=always
+RestartSec=3
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=default.target

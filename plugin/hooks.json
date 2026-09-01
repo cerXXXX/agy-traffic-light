@@ -1,0 +1,44 @@
+{
+  "traffic-light-hooks": {
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": "python3 scripts/notify.py PreInvocation"
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 scripts/notify.py PreToolUse"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 scripts/notify.py PostToolUse"
+          }
+        ]
+      }
+    ],
+    "PostInvocation": [
+      {
+        "type": "command",
+        "command": "python3 scripts/notify.py PostInvocation"
+      }
+    ],
+    "Stop": [
+      {
+        "type": "command",
+        "command": "python3 scripts/notify.py Stop"
+      }
+    ]
+  }
+}
