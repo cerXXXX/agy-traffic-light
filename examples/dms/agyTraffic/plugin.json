@@ -1,0 +1,14 @@
+{
+    "id": "agyTraffic",
+    "name": "Antigravity Agent",
+    "description": "Live traffic light status indicator for Google Antigravity agents",
+    "version": "1.0.0",
+    "author": "Antigravity Traffic Light",
+    "icon": "smart_toy",
+    "type": "widget",
+    "capabilities": ["dankbar-widget", "monitoring"],
+    "component": "./AgyTrafficWidget.qml",
+    "settings": "./AgyTrafficSettings.qml",
+    "requires_dms": ">=1.0.0",
+    "permissions": ["settings_read", "settings_write"]
+}
