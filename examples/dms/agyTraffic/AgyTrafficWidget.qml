@@ -45,12 +45,12 @@ PluginComponent {
 
     readonly property color stateColor: {
         if (root.agentState === "ask") return "#ff1744";     // 🔴 Neon Red
-        if (root.agentState === "running") return "#ffdd00"; // 🟡 Neon Yellow
+        if (root.agentState === "running") return "#ffdd00"; // 🟡 Neon Amber/Yellow
         if (root.agentState === "idle") return "#00ff88";    // 🟢 Neon Green
         return "#6c7086";                                    // ⚪ Offline
     }
 
-    // Horizontal bar pill: fixed uniform size matching standard bar buttons
+    // Horizontal bar pill: standard uniform size with the glowing outer halo ring
     horizontalBarPill: Component {
         StyledRect {
             width: parent.widgetThickness
@@ -58,18 +58,50 @@ PluginComponent {
             radius: Theme.cornerRadius
             color: Theme.surfaceContainerHigh
 
-            Rectangle {
-                id: dot
-                width: 16
-                height: 16
-                radius: 8
-                color: root.stateColor
+            Item {
                 anchors.centerIn: parent
-                border.color: Theme.surfaceContainerHighest
-                border.width: 1.5
+                width: 24
+                height: 24
 
-                Behavior on color {
-                    ColorAnimation { duration: 250 }
+                // Outer Halo Ring
+                Rectangle {
+                    id: outerHalo
+                    anchors.centerIn: parent
+                    width: 21
+                    height: 21
+                    radius: 10.5
+                    color: "transparent"
+                    border.color: root.stateColor
+                    border.width: 1.5
+                    opacity: root.agentState === "offline" ? 0.25 : 0.65
+
+                    Behavior on border.color {
+                        ColorAnimation { duration: 250 }
+                    }
+
+                    // Soft pulsing ring for running/ask states
+                    SequentialAnimation on opacity {
+                        running: root.agentState === "running" || root.agentState === "ask"
+                        loops: Animation.Infinite
+                        NumberAnimation { from: 0.35; to: 0.90; duration: root.agentState === "ask" ? 500 : 1000; easing.type: Easing.InOutQuad }
+                        NumberAnimation { from: 0.90; to: 0.35; duration: root.agentState === "ask" ? 500 : 1000; easing.type: Easing.InOutQuad }
+                    }
+                }
+
+                // Inner Core Dot
+                Rectangle {
+                    id: innerCore
+                    anchors.centerIn: parent
+                    width: 13
+                    height: 13
+                    radius: 6.5
+                    color: root.stateColor
+                    border.color: Theme.surfaceContainerHighest
+                    border.width: 1.5
+
+                    Behavior on color {
+                        ColorAnimation { duration: 250 }
+                    }
                 }
             }
         }
@@ -83,17 +115,30 @@ PluginComponent {
             radius: Theme.cornerRadius
             color: Theme.surfaceContainerHigh
 
-            Rectangle {
-                width: 16
-                height: 16
-                radius: 8
-                color: root.stateColor
+            Item {
                 anchors.centerIn: parent
-                border.color: Theme.surfaceContainerHighest
-                border.width: 1.5
+                width: 24
+                height: 24
 
-                Behavior on color {
-                    ColorAnimation { duration: 250 }
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: 21
+                    height: 21
+                    radius: 10.5
+                    color: "transparent"
+                    border.color: root.stateColor
+                    border.width: 1.5
+                    opacity: 0.65
+                }
+
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: 13
+                    height: 13
+                    radius: 6.5
+                    color: root.stateColor
+                    border.color: Theme.surfaceContainerHighest
+                    border.width: 1.5
                 }
             }
         }
