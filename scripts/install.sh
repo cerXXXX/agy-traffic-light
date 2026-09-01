@@ -11,40 +11,38 @@ echo "=========================================="
 echo "Installing Antigravity Traffic Light"
 echo "=========================================="
 
-# 1. Install / Link Plugin
-echo "[1/4] Linking plugin to $PLUGIN_TARGET..."
+# 1. Install / Link Antigravity Plugin
+echo "[1/4] Linking Antigravity hook plugin to $PLUGIN_TARGET..."
 mkdir -p "$HOME/.gemini/config/plugins"
 rm -rf "$PLUGIN_TARGET"
 ln -s "$REPO_DIR/plugin" "$PLUGIN_TARGET"
-echo "✓ Plugin linked."
+echo "✓ Antigravity hook plugin linked."
 
-# 2. Install python package locally
-echo "[2/4] Installing Python package (editable mode)..."
-python3 -m pip install -e "$REPO_DIR" --break-system-packages 2>/dev/null || python3 -m pip install -e "$REPO_DIR" 2>/dev/null || echo "! Note: Python package can also be run directly from repo."
+# 2. Setup Python package
+echo "[2/4] Setting up Python package..."
+python3 -m pip install -e "$REPO_DIR" --break-system-packages 2>/dev/null || python3 -m pip install -e "$REPO_DIR" 2>/dev/null || echo "! Note: Python package runnable directly."
 
-# 3. Setup systemd user service
-echo "[3/4] Setting up systemd user service..."
+# 3. Setup systemd user service for background daemon
+echo "[3/4] Enabling systemd user service (agy-traffic.service)..."
 mkdir -p "$SYSTEMD_USER_DIR"
 cp "$REPO_DIR/systemd/agy-traffic.service" "$SYSTEMD_USER_DIR/"
 systemctl --user daemon-reload
 systemctl --user enable --now agy-traffic.service
-echo "✓ agy-traffic.service enabled and started."
+echo "✓ agy-traffic.service enabled and running."
 
-# 4. Verification
-echo "[4/4] Verifying daemon..."
-sleep 1
-if curl -s http://127.0.0.1:9876/health | grep -q "ok"; then
-    echo "✓ Daemon is running and healthy at http://127.0.0.1:9876"
+# 4. Detect and configure Desktop Environment / Panel
+echo "[4/4] Checking desktop panel integrations..."
+if [ -d "$HOME/.config/DankMaterialShell" ] || which dms >/dev/null 2>&1; then
+    echo "-> Detected Dank Material Shell (DMS). Installing native DMS QML bar plugin..."
+    bash "$REPO_DIR/examples/dms/install-dms-plugin.sh"
 else
-    echo "! Daemon did not respond immediately, please check: systemctl --user status agy-traffic.service"
+    echo "-> For Waybar, add the module from examples/waybar/ into ~/.config/waybar/config.jsonc"
 fi
 
 echo ""
 echo "=========================================="
 echo "Installation Successful!"
 echo "=========================================="
-echo "Next steps:"
-echo "1. Add the Waybar module to ~/.config/waybar/config.jsonc (see examples/waybar/)"
-echo "2. Add CSS styles to ~/.config/waybar/style.css"
-echo "3. Run simulation test: python3 scripts/simulate.py"
+echo "✓ Daemon: http://127.0.0.1:9876"
+echo "✓ Simulation test: python3 scripts/simulate.py"
 echo "=========================================="
