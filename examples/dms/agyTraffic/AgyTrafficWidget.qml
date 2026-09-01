@@ -50,24 +50,29 @@ PluginComponent {
         return "#6c7086";                                    // ⚪ Offline
     }
 
-    // Horizontal bar pill: compact geometry so DMS's pill background forms a perfect circle
+    // Horizontal bar pill: dynamically sized based on widgetThickness and mathematically centered
     horizontalBarPill: Component {
         Item {
-            implicitWidth: 6
-            implicitHeight: root.widgetThickness
+            id: pillContent
+
+            readonly property real thickness: (parent && parent.widgetThickness > 0) ? parent.widgetThickness : 30
+            // Even integer dimensions to avoid subpixel shifting
+            readonly property int outerSize: (Math.floor(thickness * 0.80) & ~1)
+            readonly property int innerSize: (Math.floor(outerSize * 0.58) & ~1)
+
+            implicitWidth: 0
+            implicitHeight: thickness
 
             Item {
                 anchors.centerIn: parent
-                width: 24
-                height: 24
+                width: pillContent.outerSize
+                height: pillContent.outerSize
 
                 // Outer Halo Ring
                 Rectangle {
                     id: outerHalo
-                    anchors.centerIn: parent
-                    width: 24
-                    height: 24
-                    radius: 12
+                    anchors.fill: parent
+                    radius: width / 2
                     color: "transparent"
                     border.color: root.stateColor
                     border.width: 1.5
@@ -85,13 +90,13 @@ PluginComponent {
                     }
                 }
 
-                // Inner Core Dot
+                // Inner Core Dot (centered inside outerHalo)
                 Rectangle {
                     id: innerCore
                     anchors.centerIn: parent
-                    width: 15
-                    height: 15
-                    radius: 7.5
+                    width: pillContent.innerSize
+                    height: pillContent.innerSize
+                    radius: width / 2
                     color: root.stateColor
                     border.color: Theme.surfaceContainerHighest
                     border.width: 1.5
@@ -107,19 +112,23 @@ PluginComponent {
     // Vertical bar pill
     verticalBarPill: Component {
         Item {
-            implicitWidth: root.widgetThickness
-            implicitHeight: 6
+            id: vPillContent
+
+            readonly property real thickness: (parent && parent.widgetThickness > 0) ? parent.widgetThickness : 30
+            readonly property int outerSize: (Math.floor(thickness * 0.80) & ~1)
+            readonly property int innerSize: (Math.floor(outerSize * 0.58) & ~1)
+
+            implicitWidth: thickness
+            implicitHeight: 0
 
             Item {
                 anchors.centerIn: parent
-                width: 24
-                height: 24
+                width: vPillContent.outerSize
+                height: vPillContent.outerSize
 
                 Rectangle {
-                    anchors.centerIn: parent
-                    width: 24
-                    height: 24
-                    radius: 12
+                    anchors.fill: parent
+                    radius: width / 2
                     color: "transparent"
                     border.color: root.stateColor
                     border.width: 1.5
@@ -128,9 +137,9 @@ PluginComponent {
 
                 Rectangle {
                     anchors.centerIn: parent
-                    width: 15
-                    height: 15
-                    radius: 7.5
+                    width: vPillContent.innerSize
+                    height: vPillContent.innerSize
+                    radius: width / 2
                     color: root.stateColor
                     border.color: Theme.surfaceContainerHighest
                     border.width: 1.5
