@@ -130,6 +130,9 @@ class AgentSession:
         self.host = host or "localhost"
         self.pid = pid
         self.transcript_path = transcript_path or ""
+        self.active_tool_step_idx = -1
+        self.active_tool_name = ""
+        self.fully_idle = True
         self.state = "idle"  # "ask", "running", "idle"
         self.substatus = "Initialized"
         self.last_updated = time.time()
@@ -169,6 +172,8 @@ class AgentSession:
             "host": self.host,
             "pid": self.pid,
             "transcript_path": self.transcript_path,
+            "active_tool_step_idx": self.active_tool_step_idx,
+            "fully_idle": self.fully_idle,
             "state": self.state,
             "substatus": self.substatus,
             "last_updated": self.last_updated,
@@ -208,12 +213,39 @@ class StateManager:
             if session.transcript_path and os.path.exists(session.transcript_path):
                 last_step = get_transcript_last_step(session.transcript_path)
                 if last_step:
+                    step_idx = last_step.get("step_index", -1)
                     step_status = last_step.get("status", "")
                     step_type = last_step.get("type", "")
                     has_error = bool(last_step.get("error"))
                     tool_calls = last_step.get("tool_calls", [])
 
-                    # Case A: An error occurred in the agent / tool
+                    # If a tool is actively running in foreground (e.g. run_command, MCP tool):
+                    if session.active_tool_step_idx >= 0:
+                        # Has the tool output step been recorded in transcript yet?
+                        if step_idx >= session.active_tool_step_idx:
+                            # Tool step finished or was interrupted
+                            session.active_tool_step_idx = -1
+                            if step_status in ("ERROR", "FAILED") or has_error:
+                                err_msg = str(last_step.get("error") or "Tool execution error")
+                                session.state = "idle"
+                                session.substatus = f"Error: {err_msg[:45]}"
+                                session.last_updated = now
+                                changed = True
+                                continue
+                            elif step_status in ("CANCELED", "CANCELLED", "ABORTED"):
+                                session.state = "idle"
+                                session.substatus = "Interrupted"
+                                session.last_updated = now
+                                changed = True
+                                continue
+                        else:
+                            # Tool is STILL actively executing! Keep running state alive.
+                            # Do NOT expire or switch to idle, regardless of elapsed time.
+                            session.last_updated = now
+                            continue
+
+                    # If we reached here, no tool is running in foreground.
+                    # Check if model finished its response or an error/cancel occurred:
                     if step_status in ("ERROR", "FAILED") or has_error:
                         err_msg = str(last_step.get("error") or "Execution error")
                         session.state = "idle"
@@ -222,7 +254,6 @@ class StateManager:
                         changed = True
                         continue
 
-                    # Case B: The step was canceled or interrupted (e.g. Esc)
                     if step_status in ("CANCELED", "CANCELLED", "ABORTED"):
                         session.state = "idle"
                         session.substatus = "Interrupted"
@@ -230,26 +261,22 @@ class StateManager:
                         changed = True
                         continue
 
-                    # Case C: Model completed its response without requesting more tools
+                    # Case: Model completed its response without requesting more tools
                     if step_status == "DONE" and step_type == "PLANNER_RESPONSE" and not tool_calls:
                         if (now - session.last_updated) > 1.0:
-                            session.state = "idle"
-                            session.substatus = "Ready"
-                            session.last_updated = now
-                            changed = True
-                            continue
-
-                    # Case D: A tool execution step finished, but no subsequent event arrived for > 3s
-                    if step_status == "DONE" and step_type in ("GENERIC", "RUN_COMMAND", "USER_INPUT"):
-                        if (now - session.last_updated) > 3.0:
-                            session.state = "idle"
-                            session.substatus = "Ready"
+                            if not session.fully_idle:
+                                session.state = "running"
+                                session.substatus = "Background tasks running"
+                            else:
+                                session.state = "idle"
+                                session.substatus = "Ready"
                             session.last_updated = now
                             changed = True
                             continue
 
             # 2. Timeout fallbacks (e.g. remote agents or when transcript is not available)
-            if session.state == "running" and (now - session.last_updated) > 120.0:
+            # Only apply when no active tool is executing
+            if session.active_tool_step_idx < 0 and session.state == "running" and (now - session.last_updated) > 180.0:
                 session.state = "idle"
                 session.substatus = "Ready"
                 session.last_updated = now
@@ -303,10 +330,18 @@ class StateManager:
             if event_type == "PreInvocation":
                 new_state = "running"
                 substatus = "Thinking / Planning"
+                session.active_tool_step_idx = -1
+                session.active_tool_name = ""
+                session.fully_idle = False
             elif event_type == "PreToolUse":
                 tool_call = payload.get("toolCall", {})
                 tool_name = tool_call.get("name", "tool") if isinstance(tool_call, dict) else "tool"
                 args = tool_call.get("args", {}) if isinstance(tool_call, dict) else {}
+                step_idx = payload.get("stepIdx", -1)
+
+                session.active_tool_step_idx = step_idx
+                session.active_tool_name = tool_name
+                session.fully_idle = False
                 
                 is_ask = payload.get("waitingApproval", False) or (tool_name in ("ask_question", "request_approval"))
                 if is_ask:
@@ -322,9 +357,14 @@ class StateManager:
                         target = args.get("TargetFile") or args.get("AbsolutePath", "")
                         fname = target.split("/")[-1] if target else ""
                         arg_summary = f": {fname}" if fname else ""
+                    elif tool_name.startswith("mcp__"):
+                        clean_name = tool_name.split("__")[-1]
+                        arg_summary = f" ({clean_name})"
                     substatus = f"Executing {tool_name}{arg_summary}"
             elif event_type == "PostToolUse":
                 new_state = "running"
+                session.active_tool_step_idx = -1
+                session.active_tool_name = ""
                 err = payload.get("error")
                 if err:
                     substatus = f"Tool failed: {str(err)[:35]}"
@@ -334,14 +374,23 @@ class StateManager:
                 new_state = "running"
                 substatus = "Processing response"
             elif event_type == "Stop":
-                new_state = "idle"
+                fully_idle = payload.get("fullyIdle", True)
+                session.fully_idle = fully_idle
+                session.active_tool_step_idx = -1
+                session.active_tool_name = ""
                 error = payload.get("error", "")
                 reason = payload.get("terminationReason", "")
-                if error:
+                if not fully_idle:
+                    new_state = "running"
+                    substatus = "Background tasks running"
+                elif error:
+                    new_state = "idle"
                     substatus = f"Error: {error[:40]}"
                 elif reason and reason not in ("model_stop", "stop", ""):
+                    new_state = "idle"
                     substatus = f"Ready ({reason})"
                 else:
+                    new_state = "idle"
                     substatus = "Ready"
             elif event_type == "AskApproval":
                 new_state = "ask"
