@@ -69,6 +69,9 @@ Installed automatically via `./scripts/install.sh` (or `./examples/dms/install-d
 * Automatic direction-aware opening on horizontal (top/bottom) and vertical (left/right) bars.
 
 ### B. Waybar *(Requires Community Testing)*
+Installed automatically if Waybar is detected by `./scripts/install.sh` (or `./examples/waybar/install-waybar.sh`).
+
+*Manual configuration option:*
 Add to your `~/.config/waybar/config.jsonc`:
 ```jsonc
 "custom/agy-traffic": {
@@ -80,7 +83,7 @@ Add to your `~/.config/waybar/config.jsonc`:
     "tooltip": true
 }
 ```
-Add styles from [`examples/waybar/style.css`](examples/waybar/style.css) into your `~/.config/waybar/style.css`.
+And add styles from [`examples/waybar/style.css`](examples/waybar/style.css) into your `~/.config/waybar/style.css`.
 
 ### C. System Tray Applet *(Requires Community Testing)*
 For KDE Plasma, GNOME (AppIndicator), XFCE, Cinnamon:

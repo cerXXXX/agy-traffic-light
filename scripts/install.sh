@@ -34,14 +34,21 @@ echo "✓ Core daemon background service (agy-traffic.service) active."
 
 # 4. Detect and configure Desktop Environment / Panel
 echo "[4/4] Configuring desktop environment integration..."
+INSTALLED_PANEL=false
+
 if [ -d "$HOME/.config/DankMaterialShell" ] || which dms >/dev/null 2>&1; then
     echo "-> Detected Dank Material Shell (DMS). Installing native DMS QML bar plugin..."
     bash "$REPO_DIR/examples/dms/install-dms-plugin.sh"
-elif [ -d "$HOME/.config/waybar" ] || which waybar >/dev/null 2>&1; then
-    echo "-> Detected Waybar."
-    echo "   Add module 'custom/agy-traffic' from examples/waybar/ into ~/.config/waybar/config.jsonc"
-    echo "   and styles from examples/waybar/style.css into ~/.config/waybar/style.css"
-else
+    INSTALLED_PANEL=true
+fi
+
+if [ -d "$HOME/.config/waybar" ] || which waybar >/dev/null 2>&1; then
+    echo "-> Detected Waybar. Auto-installing Waybar module and styles..."
+    bash "$REPO_DIR/examples/waybar/install-waybar.sh"
+    INSTALLED_PANEL=true
+fi
+
+if [ "$INSTALLED_PANEL" = false ]; then
     echo "-> For KDE / GNOME / XFCE (System Tray), enable the background tray service:"
     echo "   systemctl --user enable --now agy-traffic-tray.service"
     echo "-> For Sway / Hyprland / River (Standalone Overlay Widget), enable the widget service:"
