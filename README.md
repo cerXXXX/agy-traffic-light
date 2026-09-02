@@ -25,10 +25,34 @@ cd agy-traffic-light
 ./scripts/install.sh
 ```
 
-**What this does automatically in the background:**
-1. Links the AGY hook plugin to `~/.gemini/config/plugins/agy-traffic-light`.
+**What `./scripts/install.sh` sets up for ALL desktop environments:**
+1. Links the Antigravity hook plugin to `~/.gemini/config/plugins/agy-traffic-light`.
 2. Starts the core status daemon background service (`systemctl --user enable --now agy-traffic.service`).
-3. Detects and configures your desktop integration (DMS native plugin, Waybar, or System Tray).
+3. Pre-installs user systemd units and auto-detects your desktop integration.
+
+<details>
+<summary><b>🛠️ Manual Installation (Without <code>install.sh</code>)</b></summary>
+
+If you configure manually (e.g. for custom Waybar setups), you must set up the **Hook** and **Daemon**:
+
+1. **Install Python package:**
+   ```bash
+   pip install -e .
+   ```
+2. **Link Antigravity Hook Plugin:**
+   ```bash
+   mkdir -p ~/.gemini/config/plugins
+   ln -s "$(pwd)/plugin" ~/.gemini/config/plugins/agy-traffic-light
+   ```
+3. **Enable Background Status Daemon:**
+   ```bash
+   mkdir -p ~/.config/systemd/user
+   cp systemd/*.service ~/.config/systemd/user/
+   systemctl --user daemon-reload
+   systemctl --user enable --now agy-traffic.service
+   ```
+4. **Configure your panel / UI** from the sections below.
+</details>
 
 ---
 
