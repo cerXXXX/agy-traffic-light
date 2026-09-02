@@ -35,24 +35,47 @@ echo "✓ Core daemon background service (agy-traffic.service) active."
 # 4. Detect and configure Desktop Environment / Panel
 echo "[4/4] Configuring desktop environment integration..."
 INSTALLED_PANEL=false
+DESKTOP_LOWER="$(echo "${XDG_CURRENT_DESKTOP:-$DESKTOP_SESSION}" | tr '[:upper:]' '[:lower:]')"
 
+# A. Dank Material Shell (DMS)
 if [ -d "$HOME/.config/DankMaterialShell" ] || which dms >/dev/null 2>&1; then
     echo "-> Detected Dank Material Shell (DMS). Installing native DMS QML bar plugin..."
     bash "$REPO_DIR/examples/dms/install-dms-plugin.sh"
     INSTALLED_PANEL=true
 fi
 
+# B. Waybar
 if [ -d "$HOME/.config/waybar" ] || which waybar >/dev/null 2>&1; then
     echo "-> Detected Waybar. Auto-installing Waybar module and styles..."
     bash "$REPO_DIR/examples/waybar/install-waybar.sh"
     INSTALLED_PANEL=true
 fi
 
+# C. Traditional Desktop Environments (KDE, GNOME, XFCE, Cinnamon, MATE, LXQt) -> System Tray
 if [ "$INSTALLED_PANEL" = false ]; then
-    echo "-> For KDE / GNOME / XFCE (System Tray), enable the background tray service:"
-    echo "   systemctl --user enable --now agy-traffic-tray.service"
-    echo "-> For Sway / Hyprland / River (Standalone Overlay Widget), enable the widget service:"
-    echo "   systemctl --user enable --now agy-traffic-widget.service"
+    if [[ "$DESKTOP_LOWER" =~ (kde|plasma|gnome|xfce|cinnamon|mate|lxqt|deepin|dde|pantheon|unity) ]]; then
+        echo "-> Detected desktop environment ($XDG_CURRENT_DESKTOP). Auto-enabling background System Tray service..."
+        systemctl --user enable --now agy-traffic-tray.service
+        echo "✓ agy-traffic-tray.service enabled and running in your system tray."
+        INSTALLED_PANEL=true
+    fi
+fi
+
+# D. Standalone Wayland Compositors (Hyprland, Sway, River, Wayfire) without DMS/Waybar
+if [ "$INSTALLED_PANEL" = false ]; then
+    if [ "$XDG_SESSION_TYPE" = "wayland" ] || [[ "$DESKTOP_LOWER" =~ (hyprland|sway|river|wayfire|niri|labwc) ]]; then
+        echo "-> Detected Wayland compositor ($XDG_CURRENT_DESKTOP). Auto-enabling standalone GTK overlay widget..."
+        systemctl --user enable --now agy-traffic-widget.service
+        echo "✓ agy-traffic-widget.service enabled and running."
+        INSTALLED_PANEL=true
+    fi
+fi
+
+# Fallback
+if [ "$INSTALLED_PANEL" = false ]; then
+    echo "-> Pre-installed background services in ~/.config/systemd/user/:"
+    echo "   • System Tray:    systemctl --user enable --now agy-traffic-tray.service"
+    echo "   • Wayland Widget: systemctl --user enable --now agy-traffic-widget.service"
 fi
 
 echo ""

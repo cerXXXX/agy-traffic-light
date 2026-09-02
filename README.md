@@ -63,13 +63,13 @@ If you configure manually (e.g. for custom Waybar setups), you must set up the *
 > Integrations for other environments (Waybar, System Tray, Standalone GTK) are fully implemented, but require community testing.
 
 ### A. Dank Material Shell (DMS) / Niri *(Verified)*
-Installed automatically via `./scripts/install.sh` (or `./examples/dms/install-dms-plugin.sh`).
+Auto-installed by `./scripts/install.sh` (or `./examples/dms/install-dms-plugin.sh`).
 * Native QML bar pill in DankBar with neon double-ring styling.
 * Interactive popout card with active sessions and configurable width (default 260px in DMS settings).
 * Automatic direction-aware opening on horizontal (top/bottom) and vertical (left/right) bars.
 
 ### B. Waybar *(Requires Community Testing)*
-Installed automatically if Waybar is detected by `./scripts/install.sh` (or `./examples/waybar/install-waybar.sh`).
+Auto-installed by `./scripts/install.sh` (or `./examples/waybar/install-waybar.sh`).
 
 *Manual configuration option:*
 Add to your `~/.config/waybar/config.jsonc`:
@@ -86,20 +86,21 @@ Add to your `~/.config/waybar/config.jsonc`:
 And add styles from [`examples/waybar/style.css`](examples/waybar/style.css) into your `~/.config/waybar/style.css`.
 
 ### C. System Tray Applet *(Requires Community Testing)*
-For KDE Plasma, GNOME (AppIndicator), XFCE, Cinnamon:
-* **Primary background service:**
+For KDE Plasma, GNOME (AppIndicator), XFCE, Cinnamon. Auto-enabled by `./scripts/install.sh`.
+* **Background service:**
   ```bash
   systemctl --user enable --now agy-traffic-tray.service
   ```
-* *Manual test launch:* `python3 -m agy_traffic_light.tray`
+* Live dynamic menu with active sessions list and neon icons.
 
 ### D. Standalone Wayland GTK Widget *(Requires Community Testing)*
-For Sway, Hyprland, River, Wayfire without DMS/Waybar:
-* **Primary background service:**
+For Sway, Hyprland, River, Wayfire without DMS/Waybar. Auto-enabled by `./scripts/install.sh`.
+* **Background service:**
   ```bash
   systemctl --user enable --now agy-traffic-widget.service
   ```
-* *Manual test launch (with automatic popout direction):*
+* **Customizing position & margins:**
+  The default background service runs on `top-right`. To customize (e.g. for bottom or vertical bars), specify `--position` in the service or run:
   ```bash
   # Top bar (popout opens downwards):
   python3 -m agy_traffic_light.widget --position top-right --margin-bar 4 --margin-side 280
