@@ -25,6 +25,141 @@ DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 9876
 
 
+COLORS = {
+    "ask": "#ff1744",      # 🔴 Red
+    "running": "#ffdd00",  # 🟡 Yellow
+    "idle": "#00ff88",     # 🟢 Green
+    "offline": "#6c7086",  # ⚪ Grey
+}
+
+STATE_LABELS = {
+    "ask": "🔴 Attention Required",
+    "running": "🟡 Agent Working",
+    "idle": "🟢 Ready for Input",
+    "offline": "⚪ Offline",
+}
+
+
+def create_circle_icon(color_hex: str, size: int = 64):
+    """Draw a clean glowing traffic light icon using Pillow."""
+    from PIL import Image, ImageDraw
+    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+    # Outer glow ring
+    draw.ellipse([4, 4, size - 4, size - 4], outline=color_hex, width=3)
+    # Inner solid dot
+    draw.ellipse([16, 16, size - 16, size - 16], fill=color_hex)
+    return img
+
+
+def run_pystray_app(host=DEFAULT_HOST, port=DEFAULT_PORT):
+    """
+    Run native cross-platform system tray applet using pystray.
+    Works natively on Windows, macOS (Menu Bar), and Linux desktops.
+    """
+    # Parse CLI arguments if invoked directly as script entry point
+    if len(sys.argv) > 1 and ("--host" in sys.argv or "--port" in sys.argv):
+        parser = argparse.ArgumentParser(description="Antigravity Traffic Light System Tray Applet")
+        parser.add_argument("--host", default=DEFAULT_HOST)
+        parser.add_argument("--port", type=int, default=DEFAULT_PORT)
+        parsed, _ = parser.parse_known_args()
+        host = parsed.host
+        port = parsed.port
+
+    import pystray
+
+    # Pre-generate icon images
+    cached_icons = {state: create_circle_icon(color) for state, color in COLORS.items()}
+
+    current_state = ["offline"]
+    current_sessions = []
+    stop_event = threading.Event()
+
+    def on_clear(icon, item):
+        try:
+            req = urllib.request.Request(f"http://{host}:{port}/clear", method="POST")
+            urllib.request.urlopen(req, timeout=1.0)
+        except Exception:
+            pass
+
+    def on_quit(icon, item):
+        stop_event.set()
+        icon.stop()
+
+    def build_menu():
+        state = current_state[0]
+        header_text = STATE_LABELS.get(state, state.title())
+        items = [
+            pystray.MenuItem(f"Antigravity: {header_text}", None, enabled=False),
+            pystray.Menu.SEPARATOR,
+        ]
+
+        if current_sessions:
+            items.append(pystray.MenuItem(f"Active Sessions ({len(current_sessions)}):", None, enabled=False))
+            for s in current_sessions:
+                workspace = s.get("workspace", "workspace")
+                sess_host = s.get("host", "localhost")
+                host_suffix = f"@{sess_host}" if sess_host not in ("localhost", "127.0.0.1") else ""
+                substatus = s.get("substatus", "")
+                sess_state = s.get("state", "idle")
+                emoji = "🔴" if sess_state == "ask" else ("🟡" if sess_state == "running" else "🟢")
+                items.append(pystray.MenuItem(f"{emoji} [{workspace}{host_suffix}]: {substatus}", None, enabled=False))
+        else:
+            items.append(pystray.MenuItem("No active sessions running", None, enabled=False))
+
+        items.append(pystray.Menu.SEPARATOR)
+        items.append(pystray.MenuItem("Clear Sessions", on_clear))
+        items.append(pystray.MenuItem("Quit", on_quit))
+        return pystray.Menu(*items)
+
+    icon = pystray.Icon(
+        "agy-traffic-light",
+        cached_icons["offline"],
+        title="Antigravity: Initializing...",
+        menu=build_menu()
+    )
+
+    def poll_status():
+        while not stop_event.is_set():
+            try:
+                url = f"http://{host}:{port}/status"
+                req = urllib.request.urlopen(url, timeout=1.0)
+                data = json.loads(req.read().decode("utf-8"))
+                new_state = data.get("state", "offline")
+                new_sessions = data.get("sessions", [])
+
+                state_changed = (new_state != current_state[0])
+                sessions_changed = (len(new_sessions) != len(current_sessions) or
+                                   [s.get("substatus") for s in new_sessions] != [s.get("substatus") for s in current_sessions])
+
+                if state_changed or sessions_changed:
+                    current_state[0] = new_state
+                    current_sessions.clear()
+                    current_sessions.extend(new_sessions)
+
+                    icon.icon = cached_icons.get(new_state, cached_icons["offline"])
+                    icon.title = f"Antigravity: {STATE_LABELS.get(new_state, new_state)}"
+                    icon.menu = build_menu()
+                    if hasattr(icon, "update_menu"):
+                        icon.update_menu()
+            except Exception:
+                if current_state[0] != "offline":
+                    current_state[0] = "offline"
+                    current_sessions.clear()
+                    icon.icon = cached_icons["offline"]
+                    icon.title = "Antigravity: Daemon Offline"
+                    icon.menu = build_menu()
+                    if hasattr(icon, "update_menu"):
+                        icon.update_menu()
+
+            stop_event.wait(0.5)
+
+    poller = threading.Thread(target=poll_status, daemon=True)
+    poller.start()
+
+    icon.run()
+
+
 def run_ayatana_tray(host=DEFAULT_HOST, port=DEFAULT_PORT):
     import gi
     gi.require_version('Gtk', '3.0')
@@ -99,14 +234,7 @@ def run_ayatana_tray(host=DEFAULT_HOST, port=DEFAULT_PORT):
                 icon_path = ICON_PATHS.get(state, ICON_PATHS["offline"])
                 indicator.set_icon_full(icon_path, state)
 
-            # Update header label
-            state_labels = {
-                "ask": "🔴 Attention Required",
-                "running": "🟡 Agent Working",
-                "idle": "🟢 Ready for Input",
-                "offline": "⚪ Offline"
-            }
-            header_item.set_label(f"Antigravity Agent: {state_labels.get(state, state)}")
+            header_item.set_label(f"Antigravity Agent: {STATE_LABELS.get(state, state)}")
 
             # Remove old dynamic items
             for item in list(dynamic_items):
@@ -160,12 +288,30 @@ def main():
     parser = argparse.ArgumentParser(description="Antigravity Traffic Light System Tray Applet")
     parser.add_argument("--host", default=DEFAULT_HOST, help="Daemon host (default: 127.0.0.1)")
     parser.add_argument("--port", type=int, default=DEFAULT_PORT, help="Daemon port (default: 9876)")
+    parser.add_argument(
+        "--backend",
+        choices=["auto", "pystray", "ayatana"],
+        default="auto",
+        help="Tray backend (default: auto)"
+    )
     args = parser.parse_args()
 
-    try:
+    if args.backend == "ayatana":
         run_ayatana_tray(host=args.host, port=args.port)
-    except Exception as e:
-        print(f"Failed to start tray applet: {e}")
+    elif args.backend == "pystray":
+        run_pystray_app(host=args.host, port=args.port)
+    else:  # auto
+        try:
+            import pystray
+            run_pystray_app(host=args.host, port=args.port)
+        except Exception as e:
+            if sys.platform.startswith("linux"):
+                try:
+                    run_ayatana_tray(host=args.host, port=args.port)
+                except Exception as inner_e:
+                    print(f"Failed to start system tray (pystray: {e}, ayatana: {inner_e})")
+            else:
+                print(f"Failed to start system tray applet: {e}")
 
 
 if __name__ == "__main__":
