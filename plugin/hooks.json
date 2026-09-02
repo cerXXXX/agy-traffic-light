@@ -3,7 +3,7 @@
     "PreInvocation": [
       {
         "type": "command",
-        "command": "python3 scripts/notify.py PreInvocation"
+        "command": "python3 scripts/notify.py PreInvocation || python scripts/notify.py PreInvocation"
       }
     ],
     "PreToolUse": [
@@ -12,7 +12,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 scripts/notify.py PreToolUse"
+            "command": "python3 scripts/notify.py PreToolUse || python scripts/notify.py PreToolUse"
           }
         ]
       }
@@ -23,7 +23,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 scripts/notify.py PostToolUse"
+            "command": "python3 scripts/notify.py PostToolUse || python scripts/notify.py PostToolUse"
           }
         ]
       }
@@ -31,13 +31,13 @@
     "PostInvocation": [
       {
         "type": "command",
-        "command": "python3 scripts/notify.py PostInvocation"
+        "command": "python3 scripts/notify.py PostInvocation || python scripts/notify.py PostInvocation"
       }
     ],
     "Stop": [
       {
         "type": "command",
-        "command": "python3 scripts/notify.py Stop"
+        "command": "python3 scripts/notify.py Stop || python scripts/notify.py Stop"
       }
     ]
   }

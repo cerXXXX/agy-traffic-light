@@ -12,12 +12,21 @@ license = { text = "MIT" }
 authors = [
     { name = "Community Contributor" }
 ]
-keywords = ["antigravity", "ai", "waybar", "niri", "status-indicator", "appindicator"]
+keywords = ["antigravity", "ai", "waybar", "niri", "status-indicator", "appindicator", "macos", "windows", "tray"]
+dependencies = [
+    "psutil>=5.9.0",
+    "pystray>=0.19.5",
+    "Pillow>=9.0.0"
+]
 classifiers = [
     "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
     "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
     "Environment :: X11 Applications",
-    "Environment :: Wayland"
+    "Environment :: Win32 (MS Windows)",
+    "Environment :: MacOS X"
 ]
 
 [project.scripts]

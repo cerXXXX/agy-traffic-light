@@ -4,11 +4,18 @@
 set -e
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+# Auto-detect macOS
+if [ "$(uname -s)" = "Darwin" ]; then
+    echo "-> Detected macOS environment. Running macOS installer..."
+    exec bash "$REPO_DIR/scripts/install-macos.sh"
+fi
+
 PLUGIN_TARGET="$HOME/.gemini/config/plugins/agy-traffic-light"
 SYSTEMD_USER_DIR="$HOME/.config/systemd/user"
 
 echo "=========================================="
-echo "Installing Antigravity Traffic Light"
+echo "Installing Antigravity Traffic Light (Linux)"
 echo "=========================================="
 
 # 1. Install / Link Antigravity Plugin

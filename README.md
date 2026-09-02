@@ -19,63 +19,63 @@ Displays the real-time activity of all your running agents (local and remote) ri
 
 ## 🚀 Quick Start (Automated Setup)
 
+### Linux
 ```bash
 git clone https://github.com/cerXXXX/agy-traffic-light.git
 cd agy-traffic-light
 ./scripts/install.sh
 ```
 
-**What `./scripts/install.sh` sets up for ALL desktop environments:**
-1. Links the Antigravity hook plugin to `~/.gemini/config/plugins/agy-traffic-light`.
-2. Starts the core status daemon background service (`systemctl --user enable --now agy-traffic.service`).
-3. Pre-installs user systemd units and auto-detects your desktop integration.
+### macOS
+```bash
+git clone https://github.com/cerXXXX/agy-traffic-light.git
+cd agy-traffic-light
+./scripts/install-macos.sh
+```
+* Sets up hook plugin, installs dependencies, and enables `launchd` background LaunchAgent (`com.antigravity.traffic-light.plist`).
+* Run `agy-traffic-tray` to display the real-time indicator in the macOS Menu Bar.
 
-<details>
-<summary><b>🛠️ Manual Installation (Without <code>install.sh</code>)</b></summary>
-
-If you configure manually (e.g. for custom Waybar setups), you must set up the **Hook** and **Daemon**:
-
-1. **Install Python package:**
-   ```bash
-   pip install -e .
-   ```
-2. **Link Antigravity Hook Plugin:**
-   ```bash
-   mkdir -p ~/.gemini/config/plugins
-   ln -s "$(pwd)/plugin" ~/.gemini/config/plugins/agy-traffic-light
-   ```
-3. **Enable Background Status Daemon:**
-   ```bash
-   mkdir -p ~/.config/systemd/user
-   cp systemd/*.service ~/.config/systemd/user/
-   systemctl --user daemon-reload
-   systemctl --user enable --now agy-traffic.service
-   ```
-4. **Configure your panel / UI** from the sections below.
-</details>
+### Windows
+Open PowerShell as your current user:
+```powershell
+git clone https://github.com/cerXXXX/agy-traffic-light.git
+cd agy-traffic-light
+powershell -ExecutionPolicy Bypass -File .\scripts\install.ps1
+```
+* Automatically creates NTFS plugin junction, installs package dependencies, and places background VBS runners in your Startup folder for seamless background operation without console windows.
 
 ---
 
 ## 🖥️ Desktop Integrations
 
 > [!NOTE]
-> **Tested & Verified:** The widget design and behavior are verified on **Niri + Dank Material Shell (DMS)**.
-> Integrations for other environments (Waybar, System Tray, Standalone GTK) are fully implemented, but require community testing.
+> **Reference implementation:** Verified & tested primarily on **Niri + Dank Material Shell (DMS)**.
+> All desktop environments (Linux Waybar/DMS/Tray, macOS Menu Bar, Windows System Tray) are fully supported.
 
-### A. Dank Material Shell (DMS) / Niri *(Verified)*
+### A. Dank Material Shell (DMS) / Niri *(Reference Implementation)*
 * Native QML bar pill in DankBar with neon double-ring styling.
 * Interactive popout card with active sessions and configurable width (default 260px in DMS settings).
 * Direction-aware opening on horizontal (top/bottom) and vertical (left/right) bars.
 
-### B. Waybar *(Requires Community Testing)*
+### B. macOS Menu Bar *(Native)*
+* Built-in cross-platform status indicator via `agy-traffic-tray` (pystray).
+* Shows colored glowing traffic light dot in the top macOS Menu Bar with a clickable menu showing active agent sessions.
+* Auto-managed in background via `launchd` (`~/Library/LaunchAgents/com.antigravity.traffic-light.plist`).
+
+### C. Windows System Tray *(Native)*
+* Displays the live indicator icon right in the Windows Taskbar Notification Area (System Tray).
+* Right/left-click context menu displays active agent sessions, workspace names, and status.
+* Starts silently on login via Windows Startup runner.
+
+### D. Waybar (Linux)
 * Auto-configured into `config.jsonc` and `style.css` by `./scripts/install.sh`.
 * Native Waybar JSON module with live status tooltip and right-click to clear sessions.
 
-### C. System Tray Applet *(Requires Community Testing)*
-* For KDE Plasma, GNOME (AppIndicator), XFCE, Cinnamon.
-* Native StatusNotifierItem / AppIndicator with live dynamic sessions menu and neon icons.
+### E. System Tray Applet (KDE, GNOME, XFCE, Cinnamon)
+* Cross-platform tray via `pystray` with native `AyatanaAppIndicator` fallback.
+* StatusNotifierItem with live dynamic sessions menu and neon icons.
 
-### D. Standalone Wayland GTK Widget *(Requires Community Testing)*
+### F. Standalone Wayland GTK Widget
 * For Sway, Hyprland, River, Wayfire without DMS/Waybar.
 * Floating layer-shell overlay with an interactive popout window.
 * Position (top/bottom/left/right) is selected during installation or customizable via `--position`.
