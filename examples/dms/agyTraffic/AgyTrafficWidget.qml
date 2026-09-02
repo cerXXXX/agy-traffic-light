@@ -211,6 +211,7 @@ PluginComponent {
                 Item {
                     width: parent.width
                     height: 24
+                    implicitHeight: 24
 
                     StyledText {
                         anchors.left: parent.left
@@ -252,6 +253,7 @@ PluginComponent {
                 StyledRect {
                     width: parent.width
                     height: sessionListCol.implicitHeight + Theme.spacingM * 2
+                    implicitHeight: height
                     radius: Theme.cornerRadius
                     color: Theme.surfaceContainerHigh
 
@@ -284,6 +286,5 @@ PluginComponent {
         }
     }
 
-    popoutWidth: 380
-    popoutHeight: 130
+    popoutWidth: (pluginData.popoutWidth !== undefined && pluginData.popoutWidth > 0) ? pluginData.popoutWidth : 260
 }

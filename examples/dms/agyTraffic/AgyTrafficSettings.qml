@@ -21,6 +21,16 @@ PluginSettings {
         defaultValue: false
     }
 
+    SliderSetting {
+        settingKey: "popoutWidth"
+        label: "Popup Window Width"
+        description: "Width of the status popup window in pixels (default: 260px)"
+        defaultValue: 260
+        minimum: 200
+        maximum: 450
+        unit: "px"
+    }
+
     StringSetting {
         settingKey: "daemonUrl"
         label: "Daemon URL"
