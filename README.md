@@ -1,8 +1,9 @@
 # 🚦 Antigravity Traffic Light
 
-Real-time traffic light status indicator widget for **Google Antigravity (AGY)** agents. Designed for **Dank Material Shell (DMS)**, **Waybar**, **Niri**, **Hyprland**, **KDE Plasma**, and **System Tray**.
+Real-time traffic light status indicator widget for **Google Antigravity (AGY)** agents.
+Native cross-platform support for **Linux** (Dank Material Shell / Niri, Waybar, System Tray, Wayland Layer-Shell), **macOS** (Menu Bar), and **Windows** (Taskbar System Tray).
 
-Displays the real-time activity of all your running agents (local and remote) right in your top or side bar.
+Displays the real-time activity of all your running agents (local and remote) right in your top bar, menu bar, or system tray.
 
 ---
 
