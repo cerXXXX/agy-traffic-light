@@ -17,6 +17,19 @@ DEFAULT_SERVER_URL = "http://127.0.0.1:9876"
 
 def find_agent_pid() -> int:
     """Find the Antigravity agent process PID by inspecting process ancestors."""
+    # 1. Try cross-platform psutil (Linux, macOS, Windows)
+    try:
+        import psutil
+        curr = psutil.Process()
+        for parent in curr.parents():
+            name = parent.name().lower()
+            if any(k in name for k in ("agy", "antigravity", "gemini")):
+                return parent.pid
+        return curr.ppid()
+    except Exception:
+        pass
+
+    # 2. Linux /proc inspection fallback
     try:
         curr = os.getpid()
         agent_pid = os.getppid()

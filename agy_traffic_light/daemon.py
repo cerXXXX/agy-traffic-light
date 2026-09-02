@@ -21,10 +21,44 @@ DEFAULT_HOST = "127.0.0.1"
 SESSION_EXPIRATION_SECONDS = 1800  # 30 minutes fallback for remote sessions
 
 
+try:
+    import psutil
+    HAS_PSUTIL = True
+except ImportError:
+    HAS_PSUTIL = False
+
+
 def is_pid_alive(pid: int) -> bool:
     """Check if process with given PID is still running and not a zombie."""
     if pid <= 0:
         return True
+
+    if HAS_PSUTIL:
+        try:
+            p = psutil.Process(pid)
+            return p.is_running() and p.status() != getattr(psutil, "STATUS_ZOMBIE", "zombie")
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            return False
+        except Exception:
+            return False
+
+    # Windows native fallback
+    if sys.platform == "win32":
+        try:
+            import ctypes
+            PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+            SYNCHRONIZE = 0x00100000
+            handle = ctypes.windll.kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION | SYNCHRONIZE, False, pid)
+            if not handle:
+                return False
+            exit_code = ctypes.c_ulong()
+            ctypes.windll.kernel32.GetExitCodeProcess(handle, ctypes.byref(exit_code))
+            ctypes.windll.kernel32.CloseHandle(handle)
+            return exit_code.value == 259  # STILL_ACTIVE
+        except Exception:
+            return False
+
+    # POSIX (Linux, macOS) native fallback without psutil
     try:
         os.kill(pid, 0)
     except ProcessLookupError:
@@ -49,6 +83,31 @@ def is_pid_alive(pid: int) -> bool:
 
     return True
 
+
+def get_transcript_last_step(transcript_path: str) -> Optional[Dict[str, Any]]:
+    """Safely and efficiently read the last JSON step from an Antigravity transcript file."""
+    try:
+        if not transcript_path or not os.path.exists(transcript_path):
+            return None
+        with open(transcript_path, "rb") as f:
+            f.seek(0, os.SEEK_END)
+            size = f.tell()
+            if size == 0:
+                return None
+            read_size = min(size, 8192)
+            f.seek(max(0, size - read_size))
+            chunk = f.read(read_size)
+        lines = [l.strip() for l in chunk.split(b"\n") if l.strip()]
+        for line in reversed(lines):
+            try:
+                return json.loads(line.decode("utf-8", errors="ignore"))
+            except Exception:
+                continue
+    except Exception:
+        pass
+    return None
+
+
 ICONS = {
     "ask": "●",      # 🔴 Waiting for approval / attention
     "running": "●",  # 🟡 Thinking / Executing tool
@@ -65,29 +124,35 @@ CSS_CLASSES = {
 
 
 class AgentSession:
-    def __init__(self, conversation_id: str, workspace: str = "", host: str = "localhost", pid: int = 0):
+    def __init__(self, conversation_id: str, workspace: str = "", host: str = "localhost", pid: int = 0, transcript_path: str = ""):
         self.conversation_id = conversation_id
         self.workspace = workspace or "unknown"
         self.host = host or "localhost"
         self.pid = pid
+        self.transcript_path = transcript_path or ""
         self.state = "idle"  # "ask", "running", "idle"
         self.substatus = "Initialized"
         self.last_updated = time.time()
         self.model = ""
 
-    def update(self, state: str, substatus: str, model: str = "", pid: int = 0):
+    def update(self, state: str, substatus: str, model: str = "", pid: int = 0, transcript_path: str = ""):
         self.state = state
         self.substatus = substatus
         if model:
             self.model = model
         if pid > 0:
             self.pid = pid
+        if transcript_path:
+            self.transcript_path = transcript_path
         self.last_updated = time.time()
 
     def is_stale(self, max_age: float = SESSION_EXPIRATION_SECONDS) -> bool:
         # If running locally and PID is tracked, instantly detect process termination
         if self.pid > 0 and self.host in ("localhost", "127.0.0.1", socket.gethostname()):
             if not is_pid_alive(self.pid):
+                return True
+            # Expire idle finished sessions after 5 minutes so they don't linger forever
+            if self.state == "idle" and (time.time() - self.last_updated) > 300:
                 return True
             return False
 
@@ -103,6 +168,7 @@ class AgentSession:
             "workspace": self.workspace,
             "host": self.host,
             "pid": self.pid,
+            "transcript_path": self.transcript_path,
             "state": self.state,
             "substatus": self.substatus,
             "last_updated": self.last_updated,
@@ -124,9 +190,72 @@ class StateManager:
             time.sleep(0.5)
             changed = False
             with self.lock:
-                changed = self._prune_stale()
+                interrupted_changed = self._check_inactivity_and_interrupts()
+                stale_changed = self._prune_stale()
+                changed = interrupted_changed or stale_changed
             if changed:
                 self._notify_subscribers()
+
+    def _check_inactivity_and_interrupts(self) -> bool:
+        now = time.time()
+        changed = False
+
+        for session in self.sessions.values():
+            if session.state not in ("running", "ask"):
+                continue
+
+            # 1. Transcript-based detection (most accurate for local sessions)
+            if session.transcript_path and os.path.exists(session.transcript_path):
+                last_step = get_transcript_last_step(session.transcript_path)
+                if last_step:
+                    step_status = last_step.get("status", "")
+                    step_type = last_step.get("type", "")
+                    has_error = bool(last_step.get("error"))
+                    tool_calls = last_step.get("tool_calls", [])
+
+                    # Case A: An error occurred in the agent / tool
+                    if step_status in ("ERROR", "FAILED") or has_error:
+                        err_msg = str(last_step.get("error") or "Execution error")
+                        session.state = "idle"
+                        session.substatus = f"Error: {err_msg[:45]}"
+                        session.last_updated = now
+                        changed = True
+                        continue
+
+                    # Case B: The step was canceled or interrupted (e.g. Esc)
+                    if step_status in ("CANCELED", "CANCELLED", "ABORTED"):
+                        session.state = "idle"
+                        session.substatus = "Interrupted"
+                        session.last_updated = now
+                        changed = True
+                        continue
+
+                    # Case C: Model completed its response without requesting more tools
+                    if step_status == "DONE" and step_type == "PLANNER_RESPONSE" and not tool_calls:
+                        if (now - session.last_updated) > 1.0:
+                            session.state = "idle"
+                            session.substatus = "Ready"
+                            session.last_updated = now
+                            changed = True
+                            continue
+
+                    # Case D: A tool execution step finished, but no subsequent event arrived for > 3s
+                    if step_status == "DONE" and step_type in ("GENERIC", "RUN_COMMAND", "USER_INPUT"):
+                        if (now - session.last_updated) > 3.0:
+                            session.state = "idle"
+                            session.substatus = "Ready"
+                            session.last_updated = now
+                            changed = True
+                            continue
+
+            # 2. Timeout fallbacks (e.g. remote agents or when transcript is not available)
+            if session.state == "running" and (now - session.last_updated) > 120.0:
+                session.state = "idle"
+                session.substatus = "Ready"
+                session.last_updated = now
+                changed = True
+
+        return changed
 
     def handle_event(self, payload: Dict[str, Any]) -> str:
         with self.lock:
@@ -142,6 +271,7 @@ class StateManager:
             host = payload.get("host", socket.gethostname())
             model = payload.get("modelName", "")
             pid = int(payload.get("pid", 0))
+            transcript_path = payload.get("transcriptPath", "")
 
             # Deduplicate: A single terminal process (PID) only has one active conversation.
             # If a new conversation starts on the same PID, remove the older conversation session.
@@ -151,13 +281,21 @@ class StateManager:
                         del self.sessions[other_id]
 
             if conv_id not in self.sessions:
-                self.sessions[conv_id] = AgentSession(conv_id, workspace=workspace, host=host, pid=pid)
+                self.sessions[conv_id] = AgentSession(
+                    conv_id,
+                    workspace=workspace,
+                    host=host,
+                    pid=pid,
+                    transcript_path=transcript_path
+                )
 
             session = self.sessions[conv_id]
             session.workspace = workspace
             session.host = host
             if pid > 0:
                 session.pid = pid
+            if transcript_path:
+                session.transcript_path = transcript_path
 
             new_state = "running"
             substatus = event_type
@@ -187,13 +325,24 @@ class StateManager:
                     substatus = f"Executing {tool_name}{arg_summary}"
             elif event_type == "PostToolUse":
                 new_state = "running"
-                substatus = "Tool completed"
+                err = payload.get("error")
+                if err:
+                    substatus = f"Tool failed: {str(err)[:35]}"
+                else:
+                    substatus = "Tool completed"
             elif event_type == "PostInvocation":
                 new_state = "running"
                 substatus = "Processing response"
             elif event_type == "Stop":
                 new_state = "idle"
-                substatus = "Ready"
+                error = payload.get("error", "")
+                reason = payload.get("terminationReason", "")
+                if error:
+                    substatus = f"Error: {error[:40]}"
+                elif reason and reason not in ("model_stop", "stop", ""):
+                    substatus = f"Ready ({reason})"
+                else:
+                    substatus = "Ready"
             elif event_type == "AskApproval":
                 new_state = "ask"
                 substatus = payload.get("reason", "Waiting for confirmation")
@@ -201,7 +350,7 @@ class StateManager:
                 new_state = payload.get("state", "idle")
                 substatus = payload.get("substatus", "")
 
-            session.update(new_state, substatus, model=model, pid=pid)
+            session.update(new_state, substatus, model=model, pid=pid, transcript_path=transcript_path)
             self._prune_stale()
 
         self._notify_subscribers()
@@ -372,11 +521,14 @@ class TrafficLightHTTPHandler(BaseHTTPRequestHandler):
             self._send_json(404, {"error": "Not found"})
 
     def _send_json(self, code: int, data: Any):
-        self.send_response(code)
-        self.send_header("Content-Type", "application/json")
-        self._set_cors_headers()
-        self.end_headers()
-        self.wfile.write(json.dumps(data, indent=2).encode("utf-8"))
+        try:
+            self.send_response(code)
+            self.send_header("Content-Type", "application/json")
+            self._set_cors_headers()
+            self.end_headers()
+            self.wfile.write(json.dumps(data, indent=2).encode("utf-8"))
+        except (BrokenPipeError, ConnectionResetError):
+            pass
 
     def log_message(self, format, *args):
         pass
