@@ -7,7 +7,7 @@
     "return-type": "json",
     "interval": 1,
     "exec": "curl -s http://127.0.0.1:9876/waybar",
-    "on-click": "curl -s -X POST http://127.0.0.1:9876/clear",
+    "on-click-right": "curl -s -X POST http://127.0.0.1:9876/clear",
     "tooltip": true
   }
 }

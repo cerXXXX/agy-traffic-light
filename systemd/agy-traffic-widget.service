@@ -5,7 +5,7 @@ PartOf=graphical-session.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/python3 /home/admin/agy-traffic-light/agy_traffic_light/widget.py --layer overlay --position top-right --margin-top 4 --margin-side 280
+ExecStart=/usr/bin/python3 -m agy_traffic_light.widget --position top-right --margin-bar 4 --margin-side 280
 Restart=always
 RestartSec=3
 Environment=PYTHONUNBUFFERED=1

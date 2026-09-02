@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """
 Antigravity Traffic Light - System Tray Applet
-Native StatusNotifierItem / AppIndicator for DMS, KDE, GNOME, Waybar, XFCE.
+Native StatusNotifierItem / AppIndicator for KDE Plasma, GNOME, XFCE, Cinnamon, etc.
 """
 
 import sys
 import os
 import time
 import json
+import argparse
 import urllib.request
 import threading
 
@@ -45,17 +46,20 @@ def run_ayatana_tray(host=DEFAULT_HOST, port=DEFAULT_PORT):
 
     menu = Gtk.Menu()
 
-    # Header Item
-    header_item = Gtk.MenuItem(label="Antigravity: Initializing...")
+    # 1. Header Item
+    header_item = Gtk.MenuItem(label="Antigravity Agent: Initializing...")
     header_item.set_sensitive(False)
     menu.append(header_item)
 
     menu.append(Gtk.SeparatorMenuItem())
 
-    # Sessions container submenu / item
-    sessions_item = Gtk.MenuItem(label="No active sessions")
-    sessions_item.set_sensitive(False)
-    menu.append(sessions_item)
+    # Dynamic session items holder
+    dynamic_items = []
+
+    empty_sessions_item = Gtk.MenuItem(label="No active sessions running")
+    empty_sessions_item.set_sensitive(False)
+    menu.append(empty_sessions_item)
+    dynamic_items.append(empty_sessions_item)
 
     menu.append(Gtk.SeparatorMenuItem())
 
@@ -66,6 +70,7 @@ def run_ayatana_tray(host=DEFAULT_HOST, port=DEFAULT_PORT):
             urllib.request.urlopen(req, timeout=1.0)
         except Exception:
             pass
+        update_status()
 
     clear_item = Gtk.MenuItem(label="Clear Sessions")
     clear_item.connect("activate", on_clear)
@@ -101,35 +106,68 @@ def run_ayatana_tray(host=DEFAULT_HOST, port=DEFAULT_PORT):
                 "idle": "🟢 Ready for Input",
                 "offline": "⚪ Offline"
             }
-            header_item.set_label(f"Antigravity: {state_labels.get(state, state)}")
+            header_item.set_label(f"Antigravity Agent: {state_labels.get(state, state)}")
 
+            # Remove old dynamic items
+            for item in list(dynamic_items):
+                menu.remove(item)
+            dynamic_items.clear()
+
+            # Re-insert dynamic session items right before clear_item separator
+            # Index 2 is right after the first separator
+            insert_idx = 2
             if sessions:
-                lines = []
+                count_item = Gtk.MenuItem(label=f"Active Sessions ({len(sessions)}):")
+                count_item.set_sensitive(False)
+                menu.insert(count_item, insert_idx)
+                dynamic_items.append(count_item)
+                insert_idx += 1
+
                 for s in sessions:
-                    lines.append(f"[{s.get('workspace')}]: {s.get('substatus')}")
-                sessions_item.set_label("\n".join(lines[:3]))
+                    workspace = s.get("workspace", "workspace")
+                    sess_host = s.get("host", "localhost")
+                    host_suffix = f"@{sess_host}" if sess_host not in ("localhost", "127.0.0.1") else ""
+                    substatus = s.get("substatus", "")
+                    sess_state = s.get("state", "idle")
+                    emoji = "🔴" if sess_state == "ask" else ("🟡" if sess_state == "running" else "🟢")
+
+                    sess_item = Gtk.MenuItem(label=f"{emoji} [{workspace}{host_suffix}]: {substatus}")
+                    sess_item.set_sensitive(False)
+                    menu.insert(sess_item, insert_idx)
+                    dynamic_items.append(sess_item)
+                    insert_idx += 1
             else:
-                sessions_item.set_label("No active sessions")
+                none_item = Gtk.MenuItem(label="No active sessions running")
+                none_item.set_sensitive(False)
+                menu.insert(none_item, insert_idx)
+                dynamic_items.append(none_item)
+
+            menu.show_all()
 
         except Exception:
             if current_state[0] != "offline":
                 current_state[0] = "offline"
                 indicator.set_icon_full(ICON_PATHS["offline"], "offline")
-                header_item.set_label("Antigravity: Daemon Offline")
-                sessions_item.set_label("Cannot reach daemon")
+                header_item.set_label("Antigravity Agent: Daemon Offline")
 
-        return True  # Keep GLib timer running
+        return True
 
     GLib.timeout_add(500, update_status)
     Gtk.main()
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Antigravity Traffic Light System Tray Applet")
+    parser.add_argument("--host", default=DEFAULT_HOST, help="Daemon host (default: 127.0.0.1)")
+    parser.add_argument("--port", type=int, default=DEFAULT_PORT, help="Daemon port (default: 9876)")
+    args = parser.parse_args()
+
     try:
-        run_ayatana_tray()
+        run_ayatana_tray(host=args.host, port=args.port)
     except Exception as e:
         print(f"Failed to start tray applet: {e}")
 
 
 if __name__ == "__main__":
     main()
+

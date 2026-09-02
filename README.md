@@ -108,20 +108,34 @@ Add to your `~/.config/waybar/config.jsonc`:
 
 Add CSS styles from [`examples/waybar/style.css`](examples/waybar/style.css) into your `~/.config/waybar/style.css`.
 
-### C. System Tray Applet *(Requires Community Testing)*
+### C. System Tray Applet *(KDE Plasma, GNOME, XFCE, Cinnamon)*
 
-For KDE Plasma, GNOME (with AppIndicator extension), XFCE, etc.:
+Native StatusNotifierItem / AppIndicator with live dynamic menu, active sessions list, and neon icons:
 ```bash
 python3 -m agy_traffic_light.tray
 ```
-Or enable the user service `systemd/agy-traffic-tray.service`.
-
-### D. Standalone Wayland GTK Widget *(Requires Community Testing)*
-
-For window managers without DMS or Waybar (e.g. Sway, Hyprland, River):
+Or enable the user background service:
 ```bash
-python3 -m agy_traffic_light.widget --position top-right
+systemctl --user enable --now agy-traffic-tray.service
 ```
+
+### D. Standalone Wayland GTK Widget *(Sway, Hyprland, River, Wayfire)*
+
+Lightweight layer-shell overlay with an interactive details popout window that **automatically adapts its opening direction based on panel position** (top/bottom/left/right):
+```bash
+# Top bar (popout opens downwards):
+python3 -m agy_traffic_light.widget --position top-right --margin-bar 4 --margin-side 280
+
+# Bottom bar (popout opens upwards):
+python3 -m agy_traffic_light.widget --position bottom-right --margin-bar 4 --margin-side 280
+
+# Left vertical bar (popout opens to the right):
+python3 -m agy_traffic_light.widget --position left-top --margin-bar 4 --margin-side 100
+
+# Right vertical bar (popout opens to the left):
+python3 -m agy_traffic_light.widget --position right-top --margin-bar 4 --margin-side 100
+```
+Or enable the user background service `systemd/agy-traffic-widget.service`.
 
 ---
 
