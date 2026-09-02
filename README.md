@@ -5,6 +5,10 @@ Native cross-platform support for **Linux** (Dank Material Shell / Niri, Waybar,
 
 Displays the real-time activity of all your running agents (local and remote) right in your top bar, menu bar, or system tray.
 
+<p align="center">
+  <img src="assets/preview.png" alt="Antigravity Traffic Light Preview" width="650">
+</p>
+
 ---
 
 ## 🎨 Traffic Light States
