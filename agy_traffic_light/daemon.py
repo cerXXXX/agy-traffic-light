@@ -380,15 +380,20 @@ class StateManager:
                 session.active_tool_name = ""
                 error = payload.get("error", "")
                 reason = payload.get("terminationReason", "")
+                reason_clean = reason.lower().replace("executor_termination_reason_", "").strip()
+
                 if not fully_idle:
                     new_state = "running"
                     substatus = "Background tasks running"
                 elif error:
                     new_state = "idle"
                     substatus = f"Error: {error[:40]}"
-                elif reason and reason not in ("model_stop", "stop", ""):
+                elif any(w in reason_clean for w in ("cancel", "interrupt", "abort")):
                     new_state = "idle"
-                    substatus = f"Ready ({reason})"
+                    substatus = "Interrupted"
+                elif "max_steps" in reason_clean:
+                    new_state = "idle"
+                    substatus = "Step limit reached"
                 else:
                     new_state = "idle"
                     substatus = "Ready"
