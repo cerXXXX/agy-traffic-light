@@ -86,21 +86,15 @@ Add to your `~/.config/waybar/config.jsonc`:
 And add styles from [`examples/waybar/style.css`](examples/waybar/style.css) into your `~/.config/waybar/style.css`.
 
 ### C. System Tray Applet *(Requires Community Testing)*
-For KDE Plasma, GNOME (AppIndicator), XFCE, Cinnamon. Auto-enabled by `./scripts/install.sh`.
-* **Background service:**
-  ```bash
-  systemctl --user enable --now agy-traffic-tray.service
-  ```
-* Live dynamic menu with active sessions list and neon icons.
+For KDE Plasma, GNOME (AppIndicator), XFCE, Cinnamon.
+* Auto-enabled by `./scripts/install.sh` via background service `agy-traffic-tray.service`.
+* Native StatusNotifierItem / AppIndicator with live dynamic sessions menu and neon icons.
 
 ### D. Standalone Wayland GTK Widget *(Requires Community Testing)*
-For Sway, Hyprland, River, Wayfire without DMS/Waybar. Auto-enabled by `./scripts/install.sh`.
-* **Background service:**
-  ```bash
-  systemctl --user enable --now agy-traffic-widget.service
-  ```
+For Sway, Hyprland, River, Wayfire (when not using Waybar or DMS).
+* Auto-enabled by `./scripts/install.sh` via background service `agy-traffic-widget.service`.
 * **Customizing position & margins:**
-  The default background service runs on `top-right`. To customize (e.g. for bottom or vertical bars), specify `--position` in the service or run:
+  Because this is an independent Wayland overlay (not embedded in a specific bar), it defaults to `top-right`. If your desktop panel is on the bottom or side, you can adjust the service or run with custom flags:
   ```bash
   # Top bar (popout opens downwards):
   python3 -m agy_traffic_light.widget --position top-right --margin-bar 4 --margin-side 280
