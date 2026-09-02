@@ -64,9 +64,34 @@ fi
 # D. Standalone Wayland Compositors (Hyprland, Sway, River, Wayfire) without DMS/Waybar
 if [ "$INSTALLED_PANEL" = false ]; then
     if [ "$XDG_SESSION_TYPE" = "wayland" ] || [[ "$DESKTOP_LOWER" =~ (hyprland|sway|river|wayfire|niri|labwc) ]]; then
-        echo "-> Detected Wayland compositor ($XDG_CURRENT_DESKTOP). Auto-enabling standalone GTK overlay widget..."
+        echo "-> Detected Wayland compositor ($XDG_CURRENT_DESKTOP)."
+        
+        CHOSEN_POS="top-right"
+        if [ -t 0 ]; then
+            echo ""
+            echo "Where is your status bar positioned?"
+            echo "  1) Top-Right (default)"
+            echo "  2) Top-Left"
+            echo "  3) Bottom-Right"
+            echo "  4) Bottom-Left"
+            echo "  5) Left-Top (vertical bar)"
+            echo "  6) Right-Top (vertical bar)"
+            read -r -p "Select position [1-6, default: 1]: " pos_choice
+            case "$pos_choice" in
+                2) CHOSEN_POS="top-left" ;;
+                3) CHOSEN_POS="bottom-right" ;;
+                4) CHOSEN_POS="bottom-left" ;;
+                5) CHOSEN_POS="left-top" ;;
+                6) CHOSEN_POS="right-top" ;;
+                *) CHOSEN_POS="top-right" ;;
+            esac
+        fi
+        
+        # Update position in service unit
+        sed -i "s/--position [a-z-]*/--position $CHOSEN_POS/g" "$SYSTEMD_USER_DIR/agy-traffic-widget.service"
+        systemctl --user daemon-reload
         systemctl --user enable --now agy-traffic-widget.service
-        echo "✓ agy-traffic-widget.service enabled and running."
+        echo "✓ Standalone widget configured for '$CHOSEN_POS' and running in background."
         INSTALLED_PANEL=true
     fi
 fi

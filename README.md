@@ -56,58 +56,29 @@ If you configure manually (e.g. for custom Waybar setups), you must set up the *
 
 ---
 
-## 🖥️ Desktop Integrations & Background Services
+## 🖥️ Desktop Integrations
 
 > [!NOTE]
 > **Tested & Verified:** The widget design and behavior are verified on **Niri + Dank Material Shell (DMS)**.
 > Integrations for other environments (Waybar, System Tray, Standalone GTK) are fully implemented, but require community testing.
 
 ### A. Dank Material Shell (DMS) / Niri *(Verified)*
-Auto-installed by `./scripts/install.sh` (or `./examples/dms/install-dms-plugin.sh`).
 * Native QML bar pill in DankBar with neon double-ring styling.
 * Interactive popout card with active sessions and configurable width (default 260px in DMS settings).
-* Automatic direction-aware opening on horizontal (top/bottom) and vertical (left/right) bars.
+* Direction-aware opening on horizontal (top/bottom) and vertical (left/right) bars.
 
 ### B. Waybar *(Requires Community Testing)*
-Auto-installed by `./scripts/install.sh` (or `./examples/waybar/install-waybar.sh`).
-
-*Manual configuration option:*
-Add to your `~/.config/waybar/config.jsonc`:
-```jsonc
-"custom/agy-traffic": {
-    "format": "{text}",
-    "return-type": "json",
-    "interval": 1,
-    "exec": "curl -s http://127.0.0.1:9876/waybar",
-    "on-click-right": "curl -s -X POST http://127.0.0.1:9876/clear",
-    "tooltip": true
-}
-```
-And add styles from [`examples/waybar/style.css`](examples/waybar/style.css) into your `~/.config/waybar/style.css`.
+* Auto-configured into `config.jsonc` and `style.css` by `./scripts/install.sh`.
+* Native Waybar JSON module with live status tooltip and right-click to clear sessions.
 
 ### C. System Tray Applet *(Requires Community Testing)*
-For KDE Plasma, GNOME (AppIndicator), XFCE, Cinnamon.
-* Auto-enabled by `./scripts/install.sh` via background service `agy-traffic-tray.service`.
+* For KDE Plasma, GNOME (AppIndicator), XFCE, Cinnamon.
 * Native StatusNotifierItem / AppIndicator with live dynamic sessions menu and neon icons.
 
 ### D. Standalone Wayland GTK Widget *(Requires Community Testing)*
-For Sway, Hyprland, River, Wayfire (when not using Waybar or DMS).
-* Auto-enabled by `./scripts/install.sh` via background service `agy-traffic-widget.service`.
-* **Customizing position & margins:**
-  Because this is an independent Wayland overlay (not embedded in a specific bar), it defaults to `top-right`. If your desktop panel is on the bottom or side, you can adjust the service or run with custom flags:
-  ```bash
-  # Top bar (popout opens downwards):
-  python3 -m agy_traffic_light.widget --position top-right --margin-bar 4 --margin-side 280
-
-  # Bottom bar (popout opens upwards):
-  python3 -m agy_traffic_light.widget --position bottom-right --margin-bar 4 --margin-side 280
-
-  # Left vertical bar (popout opens to the right):
-  python3 -m agy_traffic_light.widget --position left-top --margin-bar 4 --margin-side 100
-
-  # Right vertical bar (popout opens to the left):
-  python3 -m agy_traffic_light.widget --position right-top --margin-bar 4 --margin-side 100
-  ```
+* For Sway, Hyprland, River, Wayfire without DMS/Waybar.
+* Floating layer-shell overlay with an interactive popout window.
+* Position (top/bottom/left/right) is selected during installation or customizable via `--position`.
 
 ---
 
