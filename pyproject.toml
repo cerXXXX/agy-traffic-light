@@ -32,6 +32,7 @@ classifiers = [
 [project.scripts]
 agy-traffic-daemon = "agy_traffic_light.daemon:main"
 agy-traffic-tray = "agy_traffic_light.tray:run_pystray_app"
+agy-traffic-uninstall = "agy_traffic_light.uninstall:main"
 
 [tool.setuptools.packages.find]
 where = ["."]

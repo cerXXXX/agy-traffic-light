@@ -93,4 +93,5 @@ Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host "✓ Core Daemon: http://127.0.0.1:9876 (running in background)" -ForegroundColor Green
 Write-Host "✓ System Tray: Indicator dot active in Taskbar Notification Area" -ForegroundColor Green
 Write-Host "✓ Test State: $PythonCmd scripts\simulate.py" -ForegroundColor Green
+Write-Host "💡 To uninstall at any time: powershell .\scripts\uninstall.ps1" -ForegroundColor Yellow
 Write-Host "==========================================" -ForegroundColor Cyan
