@@ -49,6 +49,9 @@ powershell -ExecutionPolicy Bypass -File .\scripts\install.ps1
 ```
 * Automatically creates NTFS plugin junction, installs package dependencies, and places background VBS runners in your Startup folder for seamless background operation without console windows.
 
+> [!TIP]
+> To uninstall or remove at any time, run `./uninstall.sh` (or `agy-traffic-uninstall`). See [Uninstallation / Removal](#-uninstallation--removal) below for all platforms.
+
 ---
 
 ## 🖥️ Desktop Integrations
@@ -98,6 +101,62 @@ Simulate a remote server agent:
 ```bash
 python3 scripts/simulate.py --name "prod-api" --remote
 ```
+
+---
+
+## 🗑️ Uninstallation / Removal
+
+To cleanly remove Antigravity Traffic Light, its background services, panel modules, and/or agent hook plugin:
+
+### 1. Via CLI (Cross-Platform)
+If installed as a Python package, run anytime from any directory:
+```bash
+agy-traffic-uninstall
+# or directly via python:
+python3 -m agy_traffic_light.uninstall
+```
+
+### 2. Via Repository Scripts
+
+#### Linux
+```bash
+./scripts/uninstall.sh
+# or simply from the repo root:
+./uninstall.sh
+```
+* **Interactive menu**: Lets you choose between **Full Uninstall**, **Plugin Only**, or **Keep Python Package**.
+* **Supported flags**:
+  * `--plugin-only`: Only unlinks the hook plugin from Antigravity (`~/.gemini/config/plugins/agy-traffic-light`), leaving daemon, widgets, and status bar untouched.
+  * `--keep-package`: Stops services and cleans desktop configurations, but leaves the Python package installed.
+  * `-y, --yes`: Non-interactive mode (skips confirmation prompts).
+
+#### macOS
+```bash
+./scripts/uninstall-macos.sh
+```
+* Unloads and removes LaunchAgent (`com.antigravity.traffic-light.plist`), terminates tray/daemon processes, unlinks the hook plugin, and uninstalls the Python package.
+* Supports `--plugin-only`, `--keep-package`, and `-y`.
+
+#### Windows
+Open PowerShell as current user:
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\uninstall.ps1
+```
+* Stops background processes, removes startup VBS runners from your Startup folder, unlinks NTFS plugin junction, and uninstalls package.
+* Supports `-PluginOnly`, `-KeepPackage`, and `-Force`.
+
+#### Individual Desktop Integrations (Optional)
+If you only want to remove a specific desktop widget:
+* **Dank Material Shell (DMS)**: `bash examples/dms/uninstall-dms-plugin.sh`
+* **Waybar**: `bash examples/waybar/uninstall-waybar.sh`
+
+#### Remote SSH Server (Hook Only)
+```bash
+curl -sSL https://raw.githubusercontent.com/cerXXXX/agy-traffic-light/main/examples/remote/remote-uninstall.sh | bash
+```
+
+> [!NOTE]
+> If you have active Antigravity CLI agent sessions running in open terminals, restart them after uninstalling so they release the hooks from memory.
 
 ---
 
